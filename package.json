@@ -1,0 +1,49 @@
+{
+  "name": "umami-azure-function",
+  "version": "1.0.0",
+  "description": "Azure Function for Umami data synchronization",
+  "main": "dist/function/handlers/azure.handler.js",
+  "scripts": {
+    "start": "func start",
+    "dev": "npm run build && nodemon --exec \"func start --port 7072\"",
+    "build": "tsc",
+    "test": "vitest",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "test:manual": "ts-node src/test/manual-test.ts",
+    "local": "node dist/test/manual-test.js",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "@azure/identity": "^4.4.1",
+    "@azure/keyvault-secrets": "^4.9.0",
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0",
+    "dotenv": "^16.3.1",
+    "mongoose": "^7.5.0",
+    "pg": "^8.11.0",
+    "pino": "^8.15.0"
+  },
+  "devDependencies": {
+        "@types/node": "^20.0.0",
+    "@types/pg": "^8.10.0",
+    "azure-functions-core-tools": "^4.0.0",
+    "nodemon": "^3.0.0",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "azure",
+    "functions",
+    "umami",
+    "analytics",
+    "sync"
+  ],
+  "author": "Trovex",
+  "license": "MIT"
+}
