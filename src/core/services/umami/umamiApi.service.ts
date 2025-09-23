@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { all } from 'axios';
 import logger from '../../utils/logger';
 import {
   UmamiSession,
@@ -176,6 +176,8 @@ export class UmamiApiService {
         websiteId,
         sessionsCount: allSessions.length
       });
+
+      console.log(allSessions);
 
       return allSessions;
     } catch (error) {

@@ -132,8 +132,7 @@ export class UmamiService {
               websiteUsersUpdated += result.modifiedCount;
               logger.debug(`Updated analytics for session ${session.id}`, {
                 matched: result.matchedCount,
-                modified: result.modifiedCount,
-                upserted: result.upsertedCount
+                modified: result.modifiedCount
               });
             } catch (error) {
               logger.error(`Failed to update analytics for session ${session.id}`, { error });
@@ -206,16 +205,14 @@ export class UmamiService {
             $setOnInsert: {
               createdAt: new Date()
             }
-          },
-          { upsert: true }
+          }
         );
 
-        updatedCount += result.modifiedCount + result.upsertedCount;
+        updatedCount += result.modifiedCount;
         logger.debug('Updated session for user', {
           email: session.distinct_id,
           matched: result.matchedCount,
-          modified: result.modifiedCount,
-          upserted: result.upsertedCount
+          modified: result.modifiedCount
         });
 
       } catch (error) {
@@ -269,14 +266,12 @@ export class UmamiService {
             },
             updatedAt: new Date()
           }
-        },
-        { upsert: true }
+        }
       );
 
       return {
         matchedCount: result.matchedCount,
         modifiedCount: result.modifiedCount,
-        upsertedCount: result.upsertedCount,
         insertedCount: 0,
         deletedCount: 0
       } as BatchUpdateResult;

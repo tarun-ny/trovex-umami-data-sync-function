@@ -73,5 +73,4 @@ export interface SyncResult {
 export interface BatchUpdateResult {
   matchedCount: number;
   modifiedCount: number;
-  upsertedCount: number;
 }
