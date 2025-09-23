@@ -22,9 +22,10 @@ export class DatabaseService {
       try {
         this.connection = mongoose.createConnection(mongoUrl, {
           maxPoolSize: 10,
-          serverSelectionTimeoutMS: 5000,
-          socketTimeoutMS: 45000,
+          serverSelectionTimeoutMS: 30000,
+          socketTimeoutMS: 120000,
           bufferCommands: false,
+          connectTimeoutMS: 30000,
         });
 
         await this.connection.asPromise();

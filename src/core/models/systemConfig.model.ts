@@ -6,6 +6,7 @@ export interface ISystemConfig {
   umamiSync?: {
     lastSessionSync?: Date;
     lastAnalyticsSync?: Date;
+    lastSuccessfulSync?: Date;
     websiteSyncStatus?: {
       [websiteId: string]: {
         lastSync?: Date;
@@ -26,6 +27,7 @@ const SystemConfigSchema = new Schema(
     umamiSync: {
       lastSessionSync: { type: Date },
       lastAnalyticsSync: { type: Date },
+      lastSuccessfulSync: { type: Date },
       websiteSyncStatus: {
         type: Schema.Types.Mixed,
         default: {}

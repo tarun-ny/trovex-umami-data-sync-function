@@ -3,6 +3,7 @@ import SystemConfig from '../../models/systemConfig.model';
 import User, { IUser } from '../../models/user.model';
 import { UmamiDbService } from './umamiDb.service';
 import { UmamiApiService } from './umamiApi.service';
+import { DatabaseService } from '../../models/database.service';
 import {
   PostgresSession,
   UmamiSession,
@@ -34,14 +35,22 @@ export class UmamiService {
     try {
       logger.info(LOG_MESSAGES.SYNC_STARTED);
 
-      const syncDay = UmamiApiService.getYesterdayDateString();
+      // Check sync state and determine sync window
+      const syncWindow = await this.determineSyncWindow();
+
+      if (!syncWindow.shouldSync) {
+        logger.info('Sync already completed for today, skipping');
+        return;
+      }
+
+      logger.info(`Starting sync for window: ${syncWindow.startDate.toISOString()} to ${syncWindow.endDate.toISOString()}`);
 
       // Sequential execution: session sync first, then analytics
-      await this.syncSessionIds();
-      await this.syncAnalyticsData(syncDay);
+      await this.syncSessionIdsForWindow(syncWindow.startDate, syncWindow.endDate);
+      await this.syncAnalyticsDataForWindow(syncWindow.startDate, syncWindow.endDate);
 
-      // Update sync status in SystemConfig
-      await this.updateSyncStatus(syncDay);
+      // Update sync status in SystemConfig only after complete success
+      await this.updateLastSuccessfulSync(syncWindow.endDate);
 
       logger.info(LOG_MESSAGES.SYNC_COMPLETED);
     } catch (error) {
@@ -51,13 +60,13 @@ export class UmamiService {
   }
 
   /**
-   * Sync session IDs from PostgreSQL to User collection
+   * Sync session IDs from PostgreSQL to User collection for a specific date window
    */
-  private async syncSessionIds(): Promise<void> {
+  private async syncSessionIdsForWindow(startDate: Date, endDate: Date): Promise<void> {
     try {
       logger.info(LOG_MESSAGES.SESSION_SYNC_STARTED);
 
-      const sessions = await UmamiDbService.getRecentSessions();
+      const sessions = await UmamiDbService.getSessionsAfterDate(startDate);
       logger.debug('Fetched sessions from PostgreSQL', { count: sessions.length });
 
       if (sessions.length === 0) {
@@ -65,13 +74,8 @@ export class UmamiService {
         return;
       }
 
-      // Update users in batches - each session corresponds to one user
-      const batchSize = parseInt(process.env.BATCH_SIZE || DEFAULT_CONFIG.BATCH_SIZE.toString());
-
-      for (let i = 0; i < sessions.length; i += batchSize) {
-        const sessionBatch = sessions.slice(i, i + batchSize);
-        await this.updateUserSessionsBatchSimple(sessionBatch);
-      }
+      // Update users sequentially - each session corresponds to one user
+      await this.updateUserSessionsSequential(sessions);
 
       logger.info(LOG_MESSAGES.SESSION_SYNC_COMPLETED, {
         sessionsProcessed: sessions.length
@@ -83,196 +87,217 @@ export class UmamiService {
   }
 
   /**
-   * Sync analytics data from Umami API to User collection
+   * Sync analytics data from API for a specific date window
    */
-  private async syncAnalyticsData(syncDay: string): Promise<void> {
+  private async syncAnalyticsDataForWindow(startDate: Date, endDate: Date): Promise<void> {
+    logger.info('Starting analytics sync for date window');
+
     try {
-      logger.info(LOG_MESSAGES.ANALYTICS_SYNC_STARTED, { syncDay });
+      // Get timestamps for the range
+      const startTimestamp = startDate.getTime();
+      const endTimestamp = endDate.getTime();
+
+      logger.info('Analytics sync range', {
+        startDate: startDate.toISOString().split('T')[0],
+        startTimestamp,
+        endDate: endDate.toISOString().split('T')[0],
+        endTimestamp
+      });
 
       // Authenticate once for all websites
       await this.apiService.authenticate();
 
-      const results: SyncResult[] = [];
+      let totalSessionsProcessed = 0;
+      let totalUsersUpdated = 0;
 
-      // Sequential processing of each website
+      // Process each website sequentially for the date range
       for (const websiteId of this.websiteIds) {
         try {
-          const result = await this.syncWebsiteAnalytics(websiteId, syncDay);
-          results.push(result);
-        } catch (error) {
-          logger.error('Failed to sync website analytics', { websiteId, error });
-          results.push({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            websiteId
+          logger.debug('Fetching sessions for website', { websiteId });
+          const sessions = await this.apiService.fetchAllSessions(websiteId, startTimestamp, endTimestamp);
+
+          logger.debug('Got sessions for website', { websiteId, sessionCount: sessions.length });
+
+          if (sessions.length === 0) {
+          logger.info('No sessions found for website in date range', { websiteId });
+            continue;
+          }
+
+          // Update users with analytics data sequentially
+          let websiteUsersUpdated = 0;
+
+          for (const session of sessions) {
+            try {
+              const result = await this.updateSingleUserAnalytics(session);
+              websiteUsersUpdated += result.modifiedCount;
+              logger.debug(`Updated analytics for session ${session.id}`, {
+                matched: result.matchedCount,
+                modified: result.modifiedCount,
+                upserted: result.upsertedCount
+              });
+            } catch (error) {
+              logger.error(`Failed to update analytics for session ${session.id}`, { error });
+              // Continue with other sessions even if one fails
+            }
+          }
+
+          totalSessionsProcessed += sessions.length;
+          totalUsersUpdated += websiteUsersUpdated;
+
+          // Update website sync status in SystemConfig
+          await this.updateWebsiteSyncStatus(websiteId, endDate.toISOString().split('T')[0], sessions.length);
+
+          logger.info(`Website ${websiteId} sync completed`, {
+            sessionsProcessed: sessions.length,
+            usersUpdated: websiteUsersUpdated
           });
+
+        } catch (error) {
+          logger.error('Failed to sync website', { websiteId, error });
+          await this.incrementWebsiteErrorCount(websiteId);
+          // Continue with other websites
         }
       }
 
-      const successful = results.filter(r => r.success);
-      const failed = results.filter(r => !r.success);
-
-      logger.info(LOG_MESSAGES.ANALYTICS_SYNC_COMPLETED, {
-        totalWebsites: this.websiteIds.length,
-        successful: successful.length,
-        failed: failed.length,
-        totalSessionsProcessed: successful.reduce((sum, r) => sum + (r.sessionsProcessed || 0), 0)
+      logger.info('Analytics sync summary', {
+        totalSessionsProcessed,
+        totalUsersUpdated,
+        websitesProcessed: this.websiteIds.length
       });
 
-      if (failed.length > 0) {
-        logger.warn('Some websites failed to sync', { failed });
-      }
+      logger.info('Analytics sync completed', {
+        totalSessionsProcessed,
+        totalUsersUpdated,
+        websitesProcessed: this.websiteIds.length
+      });
+
     } catch (error) {
-      logger.error('Analytics data sync failed', { error });
+      logger.error('Analytics sync failed', { error });
       throw error;
     } finally {
-      // Clear token after all websites are processed
+      // Clear token after processing
       this.apiService.clearToken();
     }
   }
 
   /**
-   * Sync analytics data for a specific website
+   * Update user session IDs sequentially (simple approach)
    */
-  private async syncWebsiteAnalytics(websiteId: string, syncDay: string): Promise<SyncResult> {
+  private async updateUserSessionsSequential(sessions: PostgresSession[]): Promise<void> {
+    logger.debug(LOG_MESSAGES.BATCH_UPDATE_STARTED, { sessionCount: sessions.length });
+
+    let updatedCount = 0;
+    const db = DatabaseService.getInstance().getConnection();
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
+    const collection = db.collection('users');
+
+    for (const session of sessions) {
+      try {
+        const result = await collection.updateOne(
+          { email: session.distinct_id.toLowerCase() },
+          {
+            $set: {
+              session_id: session.session_id,
+              updatedAt: new Date()
+            },
+            $setOnInsert: {
+              createdAt: new Date()
+            }
+          },
+          { upsert: true }
+        );
+
+        updatedCount += result.modifiedCount + result.upsertedCount;
+        logger.debug('Updated session for user', {
+          email: session.distinct_id,
+          matched: result.matchedCount,
+          modified: result.modifiedCount,
+          upserted: result.upsertedCount
+        });
+
+      } catch (error) {
+        logger.error('Failed to update session for user', {
+          email: session.distinct_id,
+          error: error instanceof Error ? error.message : error
+        });
+        // Continue with other sessions even if one fails
+      }
+    }
+
+    logger.info('Session sync completed', { updatedCount, totalSessions: sessions.length });
+
+    if (updatedCount === 0) {
+      throw new Error('No users were updated with session IDs');
+    }
+  }
+
+  /**
+   * Update single user analytics data (avoiding Mongoose bulkWrite timeout issues)
+   */
+  private async updateSingleUserAnalytics(session: UmamiSession): Promise<BatchUpdateResult> {
+    const db = DatabaseService.getInstance().getConnection();
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
+    const collection = db.collection('users');
+
     try {
-      const { startTimestamp, endTimestamp } = UmamiApiService.getDayTimestamps(syncDay);
-      const sessions = await this.apiService.fetchAllSessions(websiteId, startTimestamp, endTimestamp);
-
-      if (sessions.length === 0) {
-        logger.info('No sessions found for website', { websiteId, syncDay });
-        return {
-          success: true,
-          sessionsProcessed: 0,
-          usersUpdated: 0,
-          websiteId
-        };
-      }
-
-      // Update users with analytics data in batches
-      const batchSize = parseInt(process.env.BATCH_SIZE || DEFAULT_CONFIG.BATCH_SIZE.toString());
-      let totalUsersUpdated = 0;
-
-      for (let i = 0; i < sessions.length; i += batchSize) {
-        const sessionBatch = sessions.slice(i, i + batchSize);
-        const result = await this.updateUserAnalyticsBatch(sessionBatch);
-        totalUsersUpdated += result.modifiedCount;
-      }
-
-      // Update website sync status
-      await this.updateWebsiteSyncStatus(websiteId, syncDay, sessions.length);
+      const result = await collection.updateOne(
+        { session_id: session.id },
+        {
+          $set: {
+            umamiAnalytics: {
+              id: session.id,
+              websiteId: session.websiteId,
+              browser: session.browser || '',
+              os: session.os || '',
+              device: session.device || '',
+              screen: session.screen || '',
+              language: session.language || '',
+              country: session.country || '',
+              region: session.region || '',
+              city: session.city || '',
+              firstAt: new Date(session.firstAt),
+              lastAt: new Date(session.lastAt),
+              visits: session.visits || 0,
+              views: String(session.views || 0), // Ensure string type
+              createdAt: new Date(session.createdAt),
+            },
+            updatedAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
 
       return {
-        success: true,
-        sessionsProcessed: sessions.length,
-        usersUpdated: totalUsersUpdated,
-        websiteId
-      };
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+        upsertedCount: result.upsertedCount,
+        insertedCount: 0,
+        deletedCount: 0
+      } as BatchUpdateResult;
     } catch (error) {
-      await this.incrementWebsiteErrorCount(websiteId);
+      logger.error(`Failed to update analytics for session ${session.id}`, { error });
       throw error;
     }
   }
 
-  /**
-   * Update user session IDs in batches (simplified - one session per user)
-   */
-  private async updateUserSessionsBatchSimple(sessions: PostgresSession[]): Promise<void> {
-    logger.debug(LOG_MESSAGES.BATCH_UPDATE_STARTED, { batchSize: sessions.length });
-
-    const bulkOps = sessions.map(session => ({
-      updateOne: {
-        filter: { email: session.distinct_id.toLowerCase() },
-        update: {
-          session_id: session.session_id
-        }
-      }
-    }));
-
-    try {
-      const result: BatchUpdateResult = await User.bulkWrite(bulkOps, { ordered: false });
-      logger.debug(LOG_MESSAGES.BATCH_UPDATE_COMPLETED, {
-        matched: result.matchedCount,
-        modified: result.modifiedCount
-      });
-    } catch (error) {
-      logger.error('Batch session update failed', { error });
-      throw new Error(ERROR_MESSAGES.BATCH_UPDATE_FAILED);
-    }
-  }
-
-  /**
-   * Update user analytics data in batches
-   */
-  private async updateUserAnalyticsBatch(sessions: UmamiSession[]): Promise<BatchUpdateResult> {
-    logger.debug(LOG_MESSAGES.BATCH_UPDATE_STARTED, { batchSize: sessions.length });
-
-    const bulkOps = sessions.map(session => ({
-      updateOne: {
-        filter: { session_id: session.id },
-        update: {
-          umamiAnalytics: {
-            id: session.id,
-            websiteId: session.websiteId,
-            browser: session.browser,
-            os: session.os,
-            device: session.device,
-            screen: session.screen,
-            language: session.language,
-            country: session.country,
-            region: session.region,
-            city: session.city,
-            firstAt: new Date(session.firstAt),
-            lastAt: new Date(session.lastAt),
-            visits: session.visits,
-            views: session.views,
-            createdAt: new Date(session.createdAt),
-          }
-        }
-      }
-    }));
-
-    try {
-      const result = await User.bulkWrite(bulkOps, { ordered: false });
-      logger.debug(LOG_MESSAGES.BATCH_UPDATE_COMPLETED, {
-        matched: result.matchedCount,
-        modified: result.modifiedCount
-      });
-      return result;
-    } catch (error) {
-      logger.error('Batch analytics update failed', { error });
-      throw new Error(ERROR_MESSAGES.BATCH_UPDATE_FAILED);
-    }
-  }
-
-  /**
-   * Update overall sync status in SystemConfig
-   */
-  private async updateSyncStatus(syncDay: string): Promise<void> {
-    try {
-      const updateData = {
-        'umamiSync.lastSessionSync': new Date(),
-        'umamiSync.lastAnalyticsSync': new Date(),
-      };
-
-      await SystemConfig.findOneAndUpdate(
-        { _id: 'global' },
-        { $set: updateData },
-        { upsert: true, new: true }
-      );
-
-      logger.debug('Updated sync status in SystemConfig', { syncDay });
-    } catch (error) {
-      logger.error('Failed to update sync status', { error });
-      // Don't throw here as this is not critical for the sync process
-    }
-  }
-
+  
   /**
    * Update individual website sync status
    */
   private async updateWebsiteSyncStatus(websiteId: string, syncDay: string, sessionsProcessed: number): Promise<void> {
     try {
+      const db = DatabaseService.getInstance().getConnection();
+      if (!db) {
+        throw new Error('Database connection not established');
+      }
+
+      const collection = db.collection('systemconfigs');
       const status: WebsiteSyncStatus = {
         lastSync: new Date(),
         lastDaySynced: syncDay,
@@ -280,8 +305,8 @@ export class UmamiService {
         errorCount: 0, // Reset error count on successful sync
       };
 
-      await SystemConfig.findOneAndUpdate(
-        { _id: 'global' },
+      await collection.updateOne(
+        { _id: 'global' as any },
         {
           $set: {
             [`umamiSync.websiteSyncStatus.${websiteId}`]: status
@@ -302,8 +327,14 @@ export class UmamiService {
    */
   private async incrementWebsiteErrorCount(websiteId: string): Promise<void> {
     try {
-      await SystemConfig.findOneAndUpdate(
-        { _id: 'global' },
+      const db = DatabaseService.getInstance().getConnection();
+      if (!db) {
+        throw new Error('Database connection not established');
+      }
+
+      const collection = db.collection('systemconfigs');
+      await collection.updateOne(
+        { _id: 'global' as any },
         {
           $inc: {
             [`umamiSync.websiteSyncStatus.${websiteId}.errorCount`]: 1
@@ -330,11 +361,151 @@ export class UmamiService {
    */
   static async getSyncStatus(): Promise<UmamiSyncStatus | null> {
     try {
-      const config = await SystemConfig.findById('global');
+      const db = DatabaseService.getInstance().getConnection();
+      if (!db) {
+        return null;
+      }
+
+      const collection = db.collection('systemconfigs');
+      const config = await collection.findOne({ _id: 'global' as any });
       return config?.umamiSync || null;
     } catch (error) {
       logger.error('Failed to get sync status', { error });
       return null;
+    }
+  }
+
+  /**
+   * Determine sync window based on last successful sync
+   */
+  private async determineSyncWindow(): Promise<{
+    shouldSync: boolean;
+    startDate: Date;
+    endDate: Date;
+    syncType: 'initial' | 'recovery' | 'daily';
+  }> {
+    const db = DatabaseService.getInstance().getConnection();
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
+    const collection = db.collection('systemconfigs');
+    const config = await collection.findOne({ _id: 'global' as any });
+    const lastSuccessfulSync = config?.umamiSync?.lastSuccessfulSync;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Set end date to end of today
+    const endDate = new Date(today);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (!lastSuccessfulSync) {
+      // Initial sync - sync last 7 days
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - 6); // 7 days total including today
+      startDate.setHours(0, 0, 0, 0);
+
+      logger.info('Initial sync detected - syncing last 7 days', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: todayStr
+      });
+
+      return {
+        shouldSync: true,
+        startDate,
+        endDate,
+        syncType: 'initial'
+      };
+    }
+
+    // Check if we already synced today
+    const lastSyncDate = new Date(lastSuccessfulSync).toISOString().split('T')[0];
+    if (lastSyncDate === todayStr) {
+      logger.info('Already synced today, skipping');
+      return {
+        shouldSync: false,
+        startDate: today,
+        endDate,
+        syncType: 'daily'
+      };
+    }
+
+    // Calculate days missed since last sync
+    const daysSinceLastSync = Math.floor((today.getTime() - new Date(lastSuccessfulSync).getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceLastSync <= 1) {
+      // Daily sync - sync yesterday
+      const startDate = new Date(today);
+      startDate.setDate(startDate.getDate() - 1);
+      startDate.setHours(0, 0, 0, 0);
+
+      logger.info('Daily sync detected - syncing yesterday', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: todayStr
+      });
+
+      return {
+        shouldSync: true,
+        startDate,
+        endDate,
+        syncType: 'daily'
+      };
+    } else {
+      // Recovery sync - sync missed days
+      const startDate = new Date(lastSuccessfulSync);
+      startDate.setDate(startDate.getDate() + 1); // Start from day after last successful sync
+      startDate.setHours(0, 0, 0, 0);
+
+      logger.info('Recovery sync detected - syncing missed days', {
+        daysMissed: daysSinceLastSync,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: todayStr
+      });
+
+      return {
+        shouldSync: true,
+        startDate,
+        endDate,
+        syncType: 'recovery'
+      };
+    }
+  }
+
+  /**
+   * Update last successful sync timestamp
+   */
+  private async updateLastSuccessfulSync(syncDate: Date): Promise<void> {
+    try {
+      const db = DatabaseService.getInstance().getConnection();
+      if (!db) {
+        throw new Error('Database connection not established');
+      }
+
+      const collection = db.collection('systemconfigs');
+      const updateData = {
+        'umamiSync.lastSuccessfulSync': syncDate,
+        'umamiSync.lastSessionSync': new Date(),
+        'umamiSync.lastAnalyticsSync': new Date(),
+      };
+
+      await collection.updateOne(
+        { _id: 'global' as any },
+        {
+          $set: updateData,
+          $setOnInsert: {
+            createdAt: new Date(),
+            type: 'system'
+          }
+        },
+        { upsert: true }
+      );
+
+      logger.info('Updated last successful sync timestamp', {
+        syncDate: syncDate.toISOString().split('T')[0]
+      });
+    } catch (error) {
+      logger.error('Failed to update last successful sync timestamp', { error });
+      // Don't throw here as this is not critical for the sync process
     }
   }
 

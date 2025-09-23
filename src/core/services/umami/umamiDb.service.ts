@@ -31,6 +31,7 @@ export class UmamiDbService {
 
     try {
       const result = await pool.query(query, [startTime]);
+      console.log('Umami sessions query executed:', result);
       logger.debug('Umami sessions query result:', { count: result.rows.length, startTime });
 
       return result.rows.map(row => ({
@@ -52,6 +53,15 @@ export class UmamiDbService {
   static async getRecentSessions(hours: number = DEFAULT_CONFIG.SESSION_SYNC_WINDOW_HOURS): Promise<PostgresSession[]> {
     const startTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
     return this.getSessionsCreatedAfter(startTime);
+  }
+
+  /**
+   * Get sessions created after a specific start date (for dynamic sync windows)
+   * @param startDate - Start date to get sessions after
+   * @returns Array of sessions
+   */
+  static async getSessionsAfterDate(startDate: Date): Promise<PostgresSession[]> {
+    return this.getSessionsCreatedAfter(startDate);
   }
 
   /**
