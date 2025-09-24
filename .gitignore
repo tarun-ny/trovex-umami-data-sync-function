@@ -19,7 +19,7 @@ build/
 *.tsbuildinfo
 
 # IDE specific files
-.vscode/
+
 .idea/
 *.suo
 *.ntvs*
@@ -32,3 +32,4 @@ Thumbs.db
 .env
 Docs/
 rest/
+.vscode/

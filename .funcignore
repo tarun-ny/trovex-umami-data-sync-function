@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Source files (since we deploy compiled dist/)
+src/
+tsconfig.json
+vitest.config.ts
+vitest.integration.config.ts
+
+# Development and testing
+test/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Documentation
+README.md
+Docs/
+CLAUDE.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS generated files
+.DS_Store
+Thumbs.db
+.env
+.env.*
+
+# Git files
+.git/
+.gitignore
+
+# Development tools
+rest/
+*.rest
+
+# Build artifacts that shouldn't be deployed
+*.tsbuildinfo
+*.log
+logs/
+
+# Local Azure Functions settings
+local.settings.json
+*.azurewebjobsstorage
+
+# Keep only necessary Azure Function files
+# Include: UmamiSync/, dist/, host.json, package.json
