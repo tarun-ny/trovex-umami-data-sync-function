@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:integration": "vitest --config vitest.integration.config.ts",
     "test:manual": "ts-node src/test/manual-test.ts",
-    "local": "node dist/test/manual-test.js"
+    "local": "node dist/test/manual-test.js",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@azure/functions": "^4.0.0",
@@ -30,7 +31,8 @@
     "nodemon": "^3.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0",
-    "vitest": "^0.34.0"
+    "vitest": "^0.34.0",
+    "rimraf": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
