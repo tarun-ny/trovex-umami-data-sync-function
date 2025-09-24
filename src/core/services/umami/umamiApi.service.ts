@@ -177,7 +177,15 @@ export class UmamiApiService {
         sessionsCount: allSessions.length
       });
 
-      console.log(allSessions);
+      const sessionIds = allSessions.map(s => s.id);
+
+      console.log('=== UMAMI API COMPLETE SESSIONS DATA ===');
+      console.log({
+        websiteId,
+        count: allSessions.length,
+        sessionIds
+      });
+      console.log('=== END UMAMI API SESSIONS DATA ===');
 
       return allSessions;
     } catch (error) {

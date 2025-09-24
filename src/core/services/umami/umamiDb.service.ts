@@ -31,7 +31,21 @@ export class UmamiDbService {
 
     try {
       const result = await pool.query(query, [startTime]);
-      console.log('Umami sessions query executed:', result);
+      const sessionsData = result.rows.map(row => ({
+        session_id: row.session_id,
+        created_at: row.created_at,
+        distinct_id: row.distinct_id,
+      }));
+
+      const sessionIds = sessionsData.map(s => s.session_id);
+
+      console.log('=== POSTGRESQL SESSIONS DATA FETCH ===');
+      console.log({
+        count: result.rows.length,
+        startTime,
+        sessionIds
+      });
+      console.log('=== END POSTGRESQL SESSIONS DATA ===');
       logger.debug('Umami sessions query result:', { count: result.rows.length, startTime });
 
       return result.rows.map(row => ({

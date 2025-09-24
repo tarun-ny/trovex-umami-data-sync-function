@@ -126,18 +126,51 @@ export class UmamiService {
           // Update users with analytics data sequentially
           let websiteUsersUpdated = 0;
 
+          const matchedSessions: string[] = [];
+          const unmatchedSessions: string[] = [];
+
           for (const session of sessions) {
             try {
               const result = await this.updateSingleUserAnalytics(session);
               websiteUsersUpdated += result.modifiedCount;
+
+              if (result.matchedCount > 0) {
+                matchedSessions.push(session.id);
+              } else {
+                unmatchedSessions.push(session.id);
+              }
+
               logger.debug(`Updated analytics for session ${session.id}`, {
                 matched: result.matchedCount,
                 modified: result.modifiedCount
               });
             } catch (error) {
               logger.error(`Failed to update analytics for session ${session.id}`, { error });
+              unmatchedSessions.push(session.id);
               // Continue with other sessions even if one fails
             }
+          }
+
+          console.log('=== SESSION MATCHING ANALYSIS ===');
+          console.log({
+            websiteId,
+            totalSessions: sessions.length,
+            matchedSessions,
+            unmatchedSessionsCount: unmatchedSessions.length,
+            unmatchedSessions
+          });
+          console.log('=== END SESSION MATCHING ANALYSIS ===');
+
+          // Log missing session IDs - sessions that were returned by API but not found in MongoDB
+          const missingSessionIds = sessions.filter(session => !session.id);
+          if (missingSessionIds.length > 0) {
+            console.log('=== MISSING SESSION IDS ===');
+            console.log({
+              websiteId,
+              missingSessionsCount: missingSessionIds.length,
+              missingSessionIds: missingSessionIds.map(s => s.id)
+            });
+            console.log('=== END MISSING SESSION IDS ===');
           }
 
           totalSessionsProcessed += sessions.length;
@@ -268,6 +301,8 @@ export class UmamiService {
           }
         }
       );
+
+      // Note: Individual session matching is now handled in the main loop analysis
 
       return {
         matchedCount: result.matchedCount,
