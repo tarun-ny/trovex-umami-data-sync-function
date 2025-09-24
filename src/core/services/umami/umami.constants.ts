@@ -24,7 +24,7 @@ export const DEFAULT_CONFIG = {
   SESSION_SYNC_WINDOW_HOURS: 24,
   BATCH_SIZE: 100,
   API_PAGE_SIZE: 100,
-  DB_PORT: 5432,
+  DB_PORT: 3306,
   DB_SSL: false,
 } as const;
 
@@ -51,7 +51,7 @@ export const SYNC_STATUS = {
 // Error messages
 export const ERROR_MESSAGES = {
   MISSING_CONFIG: 'Missing required configuration',
-  DB_CONNECTION_FAILED: 'Failed to connect to Umami PostgreSQL database',
+  DB_CONNECTION_FAILED: 'Failed to connect to Umami MySQL database',
   API_AUTH_FAILED: 'Failed to authenticate with Umami API',
   API_REQUEST_FAILED: 'Failed to fetch data from Umami API',
   INVALID_WEBSITE_ID: 'Invalid website ID',

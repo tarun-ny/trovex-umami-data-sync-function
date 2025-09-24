@@ -1,54 +1,57 @@
-import { Pool } from 'pg';
+import { createPool, Pool } from 'mysql2/promise';
 import logger from '../../utils/logger';
-import { PostgresSession } from './umami.types';
+import { MySqlSession } from './umami.types';
 import { DEFAULT_CONFIG, ERROR_MESSAGES } from './umami.constants';
 
-const pool = new Pool({
+const pool = createPool({
   host: process.env.UMAMI_DB_HOST,
-  port: parseInt(process.env.UMAMI_DB_PORT || '5432'),
+  port: parseInt(process.env.UMAMI_DB_PORT || '3306'),
   database: process.env.UMAMI_DB_NAME,
   user: process.env.UMAMI_DB_USER,
   password: process.env.UMAMI_DB_PASSWORD,
-  ssl: process.env.UMAMI_DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  max: 10, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-  connectionTimeoutMillis: 2000, // How long to wait for a connection
+  ssl: process.env.UMAMI_DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  connectionLimit: 10, // Maximum number of connections in the pool
+  multipleStatements: false, // Prevent SQL injection
+  namedPlaceholders: false, // Use ? placeholders
+  dateStrings: false, // Return dates as Date objects
+  supportBigNumbers: true,
+  bigNumberStrings: false
 });
 
 export class UmamiDbService {
   /**
-   * Get sessions created after specified timestamp from Umami PostgreSQL database
+   * Get sessions created after specified timestamp from Umami MySQL database
    * @param startTime - The timestamp to get sessions after
    * @returns Array of sessions
    */
-  static async getSessionsCreatedAfter(startTime: Date): Promise<PostgresSession[]> {
+  static async getSessionsCreatedAfter(startTime: Date): Promise<MySqlSession[]> {
     const query = `
       SELECT session_id, created_at, distinct_id
       FROM session
-      WHERE created_at >= $1
+      WHERE created_at >= ?
       ORDER BY created_at ASC
     `;
 
     try {
-      const result = await pool.query(query, [startTime]);
-      const sessionsData = result.rows.map(row => ({
+      const [result] = await pool.execute(query, [startTime]);
+      const sessionsData = (result as any[]).map((row: any) => ({
         session_id: row.session_id,
         created_at: row.created_at,
         distinct_id: row.distinct_id,
       }));
 
-      const sessionIds = sessionsData.map(s => s.session_id);
+      const sessionIds = sessionsData.map((s: any) => s.session_id);
 
-      console.log('=== POSTGRESQL SESSIONS DATA FETCH ===');
+      console.log('=== MYSQL SESSIONS DATA FETCH ===');
       console.log({
-        count: result.rows.length,
+        count: (result as any[]).length,
         startTime,
         sessionIds
       });
-      console.log('=== END POSTGRESQL SESSIONS DATA ===');
-      logger.debug('Umami sessions query result:', { count: result.rows.length, startTime });
+      console.log('=== END MYSQL SESSIONS DATA ===');
+      logger.debug('Umami sessions query result:', { count: (result as any[]).length, startTime });
 
-      return result.rows.map(row => ({
+      return (result as any[]).map((row: any) => ({
         session_id: row.session_id,
         created_at: new Date(row.created_at),
         distinct_id: row.distinct_id,
@@ -64,7 +67,7 @@ export class UmamiDbService {
    * @param hours - Number of hours to look back
    * @returns Array of sessions
    */
-  static async getRecentSessions(hours: number = DEFAULT_CONFIG.SESSION_SYNC_WINDOW_HOURS): Promise<PostgresSession[]> {
+  static async getRecentSessions(hours: number = DEFAULT_CONFIG.SESSION_SYNC_WINDOW_HOURS): Promise<MySqlSession[]> {
     const startTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
     return this.getSessionsCreatedAfter(startTime);
   }
@@ -74,7 +77,7 @@ export class UmamiDbService {
    * @param startDate - Start date to get sessions after
    * @returns Array of sessions
    */
-  static async getSessionsAfterDate(startDate: Date): Promise<PostgresSession[]> {
+  static async getSessionsAfterDate(startDate: Date): Promise<MySqlSession[]> {
     return this.getSessionsCreatedAfter(startDate);
   }
 
@@ -84,8 +87,8 @@ export class UmamiDbService {
    */
   static async testConnection(): Promise<boolean> {
     try {
-      const result = await pool.query('SELECT NOW()');
-      logger.info('Umami database connection test successful:', result.rows[0]);
+      const [result] = await pool.execute('SELECT NOW()');
+      logger.info('Umami database connection test successful:', (result as any[])[0]);
       return true;
     } catch (error) {
       logger.error('Umami database connection test failed:', error);
@@ -98,15 +101,18 @@ export class UmamiDbService {
    * @returns Pool statistics
    */
   static async getPoolStats(): Promise<{
-    totalCount: number;
-    idleCount: number;
-    waitingCount: number;
+    totalConnections: number;
+    freeConnections: number;
+    allConnections: number;
   }> {
-    return {
-      totalCount: pool.totalCount,
-      idleCount: pool.idleCount,
-      waitingCount: pool.waitingCount,
+    const connection = await pool.getConnection();
+    const stats = {
+      totalConnections: 0, // MySQL2 doesn't expose these directly
+      freeConnections: 0, // MySQL2 doesn't expose these directly
+      allConnections: 0 // MySQL2 doesn't expose these directly
     };
+    connection.release();
+    return stats;
   }
 
   /**

@@ -56,7 +56,7 @@ export interface UmamiSyncStatus {
   };
 }
 
-export interface PostgresSession {
+export interface MySqlSession {
   session_id: string;
   created_at: Date;
   distinct_id: string;

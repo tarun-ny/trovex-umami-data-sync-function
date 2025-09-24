@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an **Azure Functions application** that synchronizes analytics data between Umami (PostgreSQL) and MongoDB. It runs on a 24-hour timer trigger and performs:
+This is an **Azure Functions application** that synchronizes analytics data between Umami (MySQL) and MongoDB. It runs on a 24-hour timer trigger and performs:
 
-1. **Session ID Sync**: Extracts session IDs from Umami's PostgreSQL database and updates user records in MongoDB
+1. **Session ID Sync**: Extracts session IDs from Umami's MySQL database and updates user records in MongoDB
 2. **Analytics Data Sync**: Fetches detailed analytics from Umami's REST API and enriches user records with browser, device, location, and usage statistics
 
 ## Development Commands
@@ -32,7 +32,7 @@ npm run clean        # Clean build artifacts
 - **Azure Functions Handler** (`src/function/handlers/azure.handler.ts`): Timer-triggered entry point
 - **Umami Service** (`src/core/services/umami/umami.service.ts`): Main business logic coordinator
 - **Database Services**:
-  - `UmamiDbService`: Direct PostgreSQL connection for session data
+  - `UmamiDbService`: Direct MySQL connection for session data
   - `UmamiApiService`: REST API client for analytics data
   - MongoDB models for User and SystemConfig
 - **Configuration System**: Environment-based with Azure Key Vault integration
@@ -41,7 +41,7 @@ npm run clean        # Clean build artifacts
 
 ```
 Phase 1: Session ID Sync
-PostgreSQL → UmamiDbService → Batch processing → User.bulkWrite() → SystemConfig
+MySQL → UmamiDbService → Batch processing → User.bulkWrite() → SystemConfig
 
 Phase 2: Analytics Data Sync
 Umami API → UmamiApiService → Batch processing → User.bulkWrite() → SystemConfig
@@ -114,7 +114,7 @@ Tracks sync status, last sync times, and per-website error counts.
 
 ## Performance Optimizations
 
-- **Connection pooling** for PostgreSQL and MongoDB
+- **Connection pooling** for MySQL and MongoDB
 - **Batch processing** to reduce database roundtrips
 - **Bulk write operations** for efficient updates
 - **Pagination handling** for large datasets

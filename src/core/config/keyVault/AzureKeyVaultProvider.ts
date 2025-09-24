@@ -7,6 +7,26 @@ import { KeyVaultSecretEnum } from "../../types/secrets";
 import { ALL_SECRETS } from "./secreteCategories";
 import dotenv from "dotenv";
 
+// Secret name mapping: Key Vault name → Environment variable name
+const SECRET_NAME_MAPPING: Record<string, string> = {
+  'UMAMI-DB-HOST': 'UMAMI_DB_HOST',
+  'UMAMI-DB-PORT': 'UMAMI_DB_PORT',
+  'UMAMI-DB-NAME': 'UMAMI_DB_NAME',
+  'UMAMI-DB-USER': 'UMAMI_DB_USER',
+  'UMAMI-DB-PASSWORD': 'UMAMI_DB_PASSWORD',
+  'UMAMI-DB-SSL': 'UMAMI_DB_SSL',
+  'UMAMI-API-BASE-URL': 'UMAMI_API_BASE_URL',
+  'UMAMI-API-USERNAME': 'UMAMI_API_USERNAME',
+  'UMAMI-API-PASSWORD': 'UMAMI_API_PASSWORD',
+  'UMAMI-WEBSITE-IDS': 'UMAMI_WEBSITE_IDS',
+  'INITIAL-SYNC-DAYS': 'INITIAL_SYNC_DAYS',
+  'SESSION-SYNC-WINDOW-HOURS': 'SESSION_SYNC_WINDOW_HOURS',
+  'BATCH-SIZE': 'BATCH_SIZE',
+  'API-PAGE-SIZE': 'API_PAGE_SIZE',
+  'LOG-LEVEL': 'LOG_LEVEL',
+  'MONGODB': 'MONGODB'
+};
+
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 const keyVaultConfig = {
@@ -57,22 +77,27 @@ async function loadAzureSecretsToEnv(): Promise<void> {
   const keysToLoad = [...ALL_SECRETS];
   const envVars: string[] = [];
 
-  logger.info("🔐 Fetching Azure Key Vault secrets and writing to .env...");
+  logger.info("🔐 Fetching Azure Key Vault secrets...");
 
   for (const secretKey of keysToLoad) {
     try {
       const secretValue = await fetchSecretsFromAzureVault(secretKey as string);
       if (secretValue) {
-        process.env[secretKey as string] = secretValue;
-        envVars.push(`${secretKey}=${JSON.stringify(secretValue)}`);
-        logger.debug(`✅ Loaded ${secretKey}`);
+        // Map Key Vault name to environment variable name
+        const envVarName = SECRET_NAME_MAPPING[secretKey as string] || secretKey as string;
+        process.env[envVarName] = secretValue;
+        envVars.push(`${envVarName}=${JSON.stringify(secretValue)}`);
+        logger.debug(`✅ Loaded ${secretKey} → ${envVarName}`);
       } else {
         logger.warn(`⚠️ Secret ${secretKey} is empty or undefined`);
       }
     } catch (error) {
       logger.error(`❌ Failed to load secret: ${secretKey}`, { error });
+      // Don't throw here to allow partial loading, but log the error
     }
   }
+
+  logger.info(`🔐 Loaded ${envVars.length} secrets from Azure Key Vault`);
 }
 
 export class AzureKeyVaultProvider {

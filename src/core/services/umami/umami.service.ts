@@ -5,7 +5,7 @@ import { UmamiDbService } from './umamiDb.service';
 import { UmamiApiService } from './umamiApi.service';
 import { DatabaseService } from '../../models/database.service';
 import {
-  PostgresSession,
+  MySqlSession,
   UmamiSession,
   UmamiSyncStatus,
   WebsiteSyncStatus,
@@ -60,14 +60,14 @@ export class UmamiService {
   }
 
   /**
-   * Sync session IDs from PostgreSQL to User collection for a specific date window
+   * Sync session IDs from MySQL to User collection for a specific date window
    */
   private async syncSessionIdsForWindow(startDate: Date, endDate: Date): Promise<void> {
     try {
       logger.info(LOG_MESSAGES.SESSION_SYNC_STARTED);
 
       const sessions = await UmamiDbService.getSessionsAfterDate(startDate);
-      logger.debug('Fetched sessions from PostgreSQL', { count: sessions.length });
+      logger.debug('Fetched sessions from MySQL', { count: sessions.length });
 
       if (sessions.length === 0) {
         logger.info('No new sessions found for sync');
@@ -215,7 +215,7 @@ export class UmamiService {
   /**
    * Update user session IDs sequentially (simple approach)
    */
-  private async updateUserSessionsSequential(sessions: PostgresSession[]): Promise<void> {
+  private async updateUserSessionsSequential(sessions: MySqlSession[]): Promise<void> {
     logger.debug(LOG_MESSAGES.BATCH_UPDATE_STARTED, { sessionCount: sessions.length });
 
     let updatedCount = 0;
