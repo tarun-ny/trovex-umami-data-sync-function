@@ -382,7 +382,7 @@ export class UmamiService {
    * Get configured website IDs from environment
    */
   public getWebsiteIds(): string[] {
-    const websiteIdsStr = process.env.UMAMI_WEBSITE_IDS || '';
+    const websiteIdsStr = process.env['UMAMI-WEBSITE-IDS'] || '';
     return websiteIdsStr.split(',').map(id => id.trim()).filter(Boolean);
   }
 

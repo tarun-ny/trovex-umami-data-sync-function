@@ -73,25 +73,25 @@ npm run dev
 # Database
 MONGODB=mongodb://localhost:27017/trovex
 
-# Umami PostgreSQL
-UMAMI_DB_HOST=localhost
-UMAMI_DB_PORT=5432
-UMAMI_DB_NAME=umami
-UMAMI_DB_USER=postgres
-UMAMI_DB_PASSWORD=password
-UMAMI_DB_SSL=false
+# Umami Database (MySQL/PostgreSQL depending on your setup)
+UMAMI-DB-HOST=localhost
+UMAMI-DB-PORT=5432
+UMAMI-DB-NAME=umami
+UMAMI-DB-USER=postgres
+UMAMI-DB-PASSWORD=password
+UMAMI-DB-SSL=false
 
 # Umami API
-UMAMI_API_BASE_URL=http://localhost:3000/api
-UMAMI_API_USERNAME=admin
-UMAMI_API_PASSWORD=password
-UMAMI_WEBSITE_IDS=website1,website2
+UMAMI-API-BASE-URL=http://localhost:3000/api
+UMAMI-API-USERNAME=admin
+UMAMI-API-PASSWORD=password
+UMAMI-WEBSITE-IDS=website1,website2
 
 # Sync Configuration
-INITIAL_SYNC_DAYS=7
-SESSION_SYNC_WINDOW_HOURS=24
-BATCH_SIZE=100
-API_PAGE_SIZE=100
+INITIAL-SYNC-DAYS=7
+SESSION-SYNC-WINDOW-HOURS=24
+BATCH-SIZE=100
+API-PAGE-SIZE=100
 ```
 
 #### Azure Key Vault (Production)

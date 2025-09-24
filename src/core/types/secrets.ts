@@ -19,7 +19,6 @@ export enum KeyVaultSecretEnum {
   UmamiWebsiteIds = "UMAMI-WEBSITE-IDS",
   InitialSyncDays = "INITIAL-SYNC-DAYS",
   SessionSyncWindowHours = "SESSION-SYNC-WINDOW-HOURS",
-  BatchSize = "BATCH-SIZE",
   ApiPageSize = "API-PAGE-SIZE",
 
   // Azure Key Vault Configuration

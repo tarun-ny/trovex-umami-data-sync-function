@@ -7,25 +7,6 @@ import { KeyVaultSecretEnum } from "../../types/secrets";
 import { ALL_SECRETS } from "./secreteCategories";
 import dotenv from "dotenv";
 
-// Secret name mapping: Key Vault name → Environment variable name
-const SECRET_NAME_MAPPING: Record<string, string> = {
-  'UMAMI-DB-HOST': 'UMAMI_DB_HOST',
-  'UMAMI-DB-PORT': 'UMAMI_DB_PORT',
-  'UMAMI-DB-NAME': 'UMAMI_DB_NAME',
-  'UMAMI-DB-USER': 'UMAMI_DB_USER',
-  'UMAMI-DB-PASSWORD': 'UMAMI_DB_PASSWORD',
-  'UMAMI-DB-SSL': 'UMAMI_DB_SSL',
-  'UMAMI-API-BASE-URL': 'UMAMI_API_BASE_URL',
-  'UMAMI-API-USERNAME': 'UMAMI_API_USERNAME',
-  'UMAMI-API-PASSWORD': 'UMAMI_API_PASSWORD',
-  'UMAMI-WEBSITE-IDS': 'UMAMI_WEBSITE_IDS',
-  'INITIAL-SYNC-DAYS': 'INITIAL_SYNC_DAYS',
-  'SESSION-SYNC-WINDOW-HOURS': 'SESSION_SYNC_WINDOW_HOURS',
-  'BATCH-SIZE': 'BATCH_SIZE',
-  'API-PAGE-SIZE': 'API_PAGE_SIZE',
-  'LOG-LEVEL': 'LOG_LEVEL',
-  'MONGODB': 'MONGODB'
-};
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
@@ -83,11 +64,10 @@ async function loadAzureSecretsToEnv(): Promise<void> {
     try {
       const secretValue = await fetchSecretsFromAzureVault(secretKey as string);
       if (secretValue) {
-        // Map Key Vault name to environment variable name
-        const envVarName = SECRET_NAME_MAPPING[secretKey as string] || secretKey as string;
-        process.env[envVarName] = secretValue;
-        envVars.push(`${envVarName}=${JSON.stringify(secretValue)}`);
-        logger.debug(`✅ Loaded ${secretKey} → ${envVarName}`);
+        // Use Key Vault name directly as environment variable name
+        process.env[secretKey as string] = secretValue;
+        envVars.push(`${secretKey}=${JSON.stringify(secretValue)}`);
+        logger.debug(`✅ Loaded ${secretKey}`);
       } else {
         logger.warn(`⚠️ Secret ${secretKey} is empty or undefined`);
       }

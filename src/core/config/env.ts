@@ -67,14 +67,14 @@ function loadFromLocalEnv(): void {
   // Validate required environment variables for local development
   const requiredVars = [
     'MONGODB',
-    'UMAMI_DB_HOST',
-    'UMAMI_DB_NAME',
-    'UMAMI_DB_USER',
-    'UMAMI_DB_PASSWORD',
-    'UMAMI_API_BASE_URL',
-    'UMAMI_API_USERNAME',
-    'UMAMI_API_PASSWORD',
-    'UMAMI_WEBSITE_IDS'
+    'UMAMI-DB-HOST',
+    'UMAMI-DB-NAME',
+    'UMAMI-DB-USER',
+    'UMAMI-DB-PASSWORD',
+    'UMAMI-API-BASE-URL',
+    'UMAMI-API-USERNAME',
+    'UMAMI-API-PASSWORD',
+    'UMAMI-WEBSITE-IDS'
   ];
 
   const missingVars = requiredVars.filter(varName => !process.env[varName]);

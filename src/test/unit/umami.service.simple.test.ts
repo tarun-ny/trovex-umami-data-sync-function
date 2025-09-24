@@ -40,7 +40,7 @@ describe('UmamiService - Simple Unit Tests', () => {
   describe('getWebsiteIds', () => {
     it('should return website IDs from environment', () => {
       // Test with default environment
-      process.env.UMAMI_WEBSITE_IDS = 'website1,website2,website3';
+      process.env['UMAMI-WEBSITE-IDS'] = 'website1,website2,website3';
 
       const service = new UmamiService();
       const websiteIds = service.getWebsiteIds();
@@ -49,7 +49,7 @@ describe('UmamiService - Simple Unit Tests', () => {
     });
 
     it('should handle single website ID', () => {
-      process.env.UMAMI_WEBSITE_IDS = 'single-website';
+      process.env['UMAMI-WEBSITE-IDS'] = 'single-website';
 
       const service = new UmamiService();
       const websiteIds = service.getWebsiteIds();
@@ -58,7 +58,7 @@ describe('UmamiService - Simple Unit Tests', () => {
     });
 
     it('should handle empty website IDs', () => {
-      delete process.env.UMAMI_WEBSITE_IDS;
+      delete process.env['UMAMI-WEBSITE-IDS'];
 
       const service = new UmamiService();
       const websiteIds = service.getWebsiteIds();
@@ -82,7 +82,7 @@ describe('UmamiService - Simple Unit Tests', () => {
       ];
 
       testCases.forEach(({ env, expected }) => {
-        process.env.UMAMI_WEBSITE_IDS = env;
+        process.env['UMAMI-WEBSITE-IDS'] = env;
         const service = new UmamiService();
         const result = service.getWebsiteIds();
         expect(result).toEqual(expected);

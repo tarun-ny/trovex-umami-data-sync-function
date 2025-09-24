@@ -4,12 +4,12 @@ import { MySqlSession } from './umami.types';
 import { DEFAULT_CONFIG, ERROR_MESSAGES } from './umami.constants';
 
 const pool = createPool({
-  host: process.env.UMAMI_DB_HOST,
-  port: parseInt(process.env.UMAMI_DB_PORT || '3306'),
-  database: process.env.UMAMI_DB_NAME,
-  user: process.env.UMAMI_DB_USER,
-  password: process.env.UMAMI_DB_PASSWORD,
-  ssl: process.env.UMAMI_DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  host: process.env['UMAMI-DB-HOST'],
+  port: parseInt(process.env['UMAMI-DB-PORT'] || '3306'),
+  database: process.env['UMAMI-DB-NAME'],
+  user: process.env['UMAMI-DB-USER'],
+  password: process.env['UMAMI-DB-PASSWORD'],
+  ssl: process.env['UMAMI-DB-SSL'] === 'true' ? { rejectUnauthorized: false } : undefined,
   connectionLimit: 10, // Maximum number of connections in the pool
   multipleStatements: false, // Prevent SQL injection
   namedPlaceholders: false, // Use ? placeholders
