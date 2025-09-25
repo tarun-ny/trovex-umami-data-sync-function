@@ -8,7 +8,7 @@ import { ALL_SECRETS } from "./secreteCategories";
 import dotenv from "dotenv";
 
 
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config();
 
 const keyVaultConfig = {
   vaultUrl: process.env.AZURE_KEY_VAULT_URL!,
