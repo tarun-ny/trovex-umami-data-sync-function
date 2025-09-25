@@ -4,24 +4,15 @@ import { AzureKeyVaultProvider } from './keyVault/AzureKeyVaultProvider';
 import { ISecretProvider } from './keyVault/ISecretProvider';
 import { secretProviderFactory } from './keyVault/secretProviderFactory';
 
-dotenv.config();
-
 /**
  * Load environment variables from appropriate source
  */
 export async function loadEnv(): Promise<void> {
-  const keysEnv = process.env.KEYS_ENV || 'local';
+  // Force Key Vault loading - hardcoded as requested
+  console.log('🔑 Forcing Key Vault loading (hardcoded)');
 
   try {
-    switch (keysEnv) {
-      case 'keyvault':
-        await loadFromKeyVault();
-        break;
-      case 'local':
-      default:
-        loadFromLocalEnv();
-        break;
-    }
+    await loadFromKeyVault();
   } catch (error) {
     console.error('Failed to load environment variables:', error);
     throw error;
