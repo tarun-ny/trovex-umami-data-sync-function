@@ -3,6 +3,16 @@ import logger from '../../utils/logger';
 import { MySqlSession } from './umami.types';
 import { DEFAULT_CONFIG, ERROR_MESSAGES } from './umami.constants';
 
+function getTrimmedEnv(key: string): string | undefined {
+  const value = process.env[key];
+  if (typeof value !== 'string') return value as any;
+  const trimmed = value.trim();
+  if (trimmed !== value) {
+    console.warn(`⚠️  Detected leading/trailing whitespace in ${key}.`);
+  }
+  return trimmed;
+}
+
 let pool: Pool | null = null;
 let poolInitialized = false;
 
@@ -11,13 +21,20 @@ function ensurePool(): void {
     return;
   }
 
+  const host = getTrimmedEnv('UMAMI-DB-HOST');
+  const portStr = getTrimmedEnv('UMAMI-DB-PORT') || '3306';
+  const database = getTrimmedEnv('UMAMI-DB-NAME');
+  const user = getTrimmedEnv('UMAMI-DB-USER');
+  const password = getTrimmedEnv('UMAMI-DB-PASSWORD');
+  const sslEnabled = getTrimmedEnv('UMAMI-DB-SSL') === 'true';
+
   pool = createPool({
-    host: process.env['UMAMI-DB-HOST'],
-    port: parseInt(process.env['UMAMI-DB-PORT'] || '3306'),
-    database: process.env['UMAMI-DB-NAME'],
-    user: process.env['UMAMI-DB-USER'],
-    password: process.env['UMAMI-DB-PASSWORD'],
-    ssl: process.env['UMAMI-DB-SSL'] === 'true' ? { rejectUnauthorized: false } : undefined,
+    host,
+    port: parseInt(portStr),
+    database,
+    user,
+    password,
+    ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
     connectionLimit: 10,
     multipleStatements: false,
     namedPlaceholders: false,
@@ -30,11 +47,11 @@ function ensurePool(): void {
 
   try {
     const target = {
-      host: process.env['UMAMI-DB-HOST'],
-      port: parseInt(process.env['UMAMI-DB-PORT'] || '3306'),
-      database: process.env['UMAMI-DB-NAME'],
-      user: process.env['UMAMI-DB-USER'],
-      ssl: process.env['UMAMI-DB-SSL'] === 'true'
+      host,
+      port: parseInt(portStr),
+      database,
+      user,
+      ssl: sslEnabled
     };
     console.log('🛰️  Umami MySQL target:', target);
   } catch {
