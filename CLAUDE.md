@@ -66,7 +66,7 @@ Umami API → UmamiApiService → Batch processing → User.bulkWrite() → Syst
 ## Configuration Management
 
 ### Environment Variables Required
-- **Database**: `MONGODB_URI`, `UMAMI_DB_*`, `PG*`
+- **Database**: `MONGODB-testing`, `UMAMI_DB_*`, `PG*`
 - **API**: `UMAMI_API_BASE_URL`, `UMAMI_API_USERNAME`, `UMAMI_API_PASSWORD`, `UMAMI_WEBSITE_IDS`
 - **Sync**: `SESSION_SYNC_WINDOW_HOURS`, `ANALYTICS_SYNC_DAYS_BACK`
 - **Azure**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_CERTIFICATE_PATH`, `KEY_VAULT_NAME`

@@ -57,7 +57,7 @@ function loadFromLocalEnv(): void {
 
   // Validate required environment variables for local development
   const requiredVars = [
-    'MONGODB',
+    'MONGODB-testing',
     'UMAMI-DB-HOST',
     'UMAMI-DB-NAME',
     'UMAMI-DB-USER',

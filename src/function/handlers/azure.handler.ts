@@ -4,9 +4,31 @@ import { loadEnv } from '../../core/config/env';
 import { initializeLogger } from '../../core/utils/logger';
 import { DatabaseService } from '../../core/models/database.service';
 import { Logger } from '../../core/utils/logger';
+import https from 'https';
 
 async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise<void> {
   context.log('🚀 Umami sync function started');
+
+  // Get outbound IP address
+  try {
+    const outboundIp = await new Promise<string>((resolve, reject) => {
+      https.get('https://api.ipify.org?format=json', (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          try {
+            const ipInfo = JSON.parse(data);
+            resolve(ipInfo.ip);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }).on('error', reject);
+    });
+    context.log(`🌐 Current outbound IP: ${outboundIp}`);
+  } catch (error) {
+    context.log('⚠️  Failed to get outbound IP:', error);
+  }
 
   // Validate timer trigger
   if (myTimer.isPastDue) {

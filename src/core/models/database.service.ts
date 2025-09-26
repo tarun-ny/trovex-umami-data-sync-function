@@ -13,10 +13,10 @@ export class DatabaseService {
 
   async connect(): Promise<Connection> {
     if (!this.connection || this.connection.readyState !== 1) {
-      const mongoUrl = process.env.MONGODB;
+      const mongoUrl = process.env['MONGODB-testing'];
 
       if (!mongoUrl) {
-        throw new Error('MONGODB connection string not found in environment variables');
+        throw new Error('MONGODB-testing connection string not found in environment variables');
       }
 
       try {
