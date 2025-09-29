@@ -37,12 +37,10 @@ const UserSchema = new Schema(
       type: String,
       required: true,
       lowercase: true,
-      trim: true,
-      index: true
+      trim: true
     },
     session_id: {
-      type: String,
-      index: true // Index for session_id lookups
+      type: String
     },
     umamiAnalytics: {
       id: { type: String },
@@ -78,8 +76,8 @@ const UserSchema = new Schema(
   }
 );
 
-// Create compound index on 'email' and 'isActive'
-UserSchema.index({ email: 1, isDeleted: -1 });
+// Create simple index on 'email'
+UserSchema.index({ email: 1 });
 
 // Create index on session_id for Umami integration performance
 UserSchema.index({ session_id: 1 });
