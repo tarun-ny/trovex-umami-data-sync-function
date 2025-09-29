@@ -234,9 +234,6 @@ export class UmamiService {
             $set: {
               session_id: session.session_id,
               updatedAt: new Date()
-            },
-            $setOnInsert: {
-              createdAt: new Date()
             }
           }
         );
