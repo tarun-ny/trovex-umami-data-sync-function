@@ -49,7 +49,7 @@ export class DatabaseService {
   }
 
   async disconnect(): Promise<void> {
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
       await mongoose.disconnect();
       this.connectionEstablished = false;
       console.log('🔌 Disconnected from MongoDB');
@@ -57,10 +57,10 @@ export class DatabaseService {
   }
 
   getConnection() {
-    return mongoose.connection;
+    return mongoose.connection || null;
   }
 
   isConnected(): boolean {
-    return mongoose.connection.readyState === 1;
+    return mongoose.connection?.readyState === 1;
   }
 }
