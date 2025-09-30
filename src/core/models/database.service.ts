@@ -1,8 +1,9 @@
-import mongoose, { Connection } from 'mongoose';
+import mongoose from 'mongoose';
+import User from './user.model';
 
 export class DatabaseService {
   private static instance: DatabaseService;
-  private connection: Connection | null = null;
+  private connectionEstablished: boolean = false;
 
   static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
@@ -11,47 +12,55 @@ export class DatabaseService {
     return DatabaseService.instance;
   }
 
-  async connect(): Promise<Connection> {
-    if (!this.connection || this.connection.readyState !== 1) {
-      const mongoUrl = process.env['MONGODB-testing'];
-
-      if (!mongoUrl) {
-        throw new Error('MONGODB-testing connection string not found in environment variables');
-      }
-
-      try {
-        this.connection = mongoose.createConnection(mongoUrl, {
-          maxPoolSize: 10,
-          serverSelectionTimeoutMS: 30000,
-          socketTimeoutMS: 120000,
-          bufferCommands: false,
-          connectTimeoutMS: 30000,
-        });
-
-        await this.connection.asPromise();
-        console.log('✅ Connected to MongoDB');
-      } catch (error) {
-        console.error('❌ MongoDB connection failed:', error);
-        throw error;
-      }
+  async connect(): Promise<void> {
+    if (this.connectionEstablished && mongoose.connection.readyState === 1) {
+      return;
     }
 
-    return this.connection;
+    const mongoUrl = process.env['MONGODB-testing'];
+
+    if (!mongoUrl) {
+      throw new Error('MONGODB-testing connection string not found in environment variables');
+    }
+
+    try {
+      await mongoose.connect(mongoUrl, {
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 120000,
+        bufferCommands: false,
+        connectTimeoutMS: 30000,
+      });
+
+      this.connectionEstablished = true;
+
+      // Ensure indexes are created for all models
+      try {
+        await User.createIndexes();
+        console.log('✅ Connected to MongoDB and indexes created');
+      } catch (indexError) {
+        console.warn('⚠️  Index creation warning:', indexError);
+        console.log('✅ Connected to MongoDB (index creation skipped)');
+      }
+    } catch (error) {
+      console.error('❌ MongoDB connection failed:', error);
+      throw error;
+    }
   }
 
   async disconnect(): Promise<void> {
-    if (this.connection) {
-      await this.connection.close();
-      this.connection = null;
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.disconnect();
+      this.connectionEstablished = false;
       console.log('🔌 Disconnected from MongoDB');
     }
   }
 
-  getConnection(): Connection | null {
-    return this.connection;
+  getConnection() {
+    return mongoose.connection;
   }
 
   isConnected(): boolean {
-    return this.connection?.readyState === 1;
+    return mongoose.connection.readyState === 1;
   }
 }
