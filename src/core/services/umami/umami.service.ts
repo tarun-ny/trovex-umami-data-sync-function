@@ -32,16 +32,14 @@ export class UmamiService {
    * Main entry point for complete Umami sync process
    */
   async syncAllData(): Promise<void> {
+    // Capture the exact start time when sync begins
+    const syncStartTime = new Date();
+
     try {
       logger.info(LOG_MESSAGES.SYNC_STARTED);
 
-      // Check sync state and determine sync window
+      // Determine sync window
       const syncWindow = await this.determineSyncWindow();
-
-      if (!syncWindow.shouldSync) {
-        logger.info('Sync already completed for today, skipping');
-        return;
-      }
 
       logger.info(`Starting sync for window: ${syncWindow.startDate.toISOString()} to ${syncWindow.endDate.toISOString()}`);
 
@@ -50,7 +48,7 @@ export class UmamiService {
       await this.syncAnalyticsDataForWindow(syncWindow.startDate, syncWindow.endDate);
 
       // Update sync status in SystemConfig only after complete success
-      await this.updateLastSuccessfulSync(syncWindow.endDate);
+      await this.updateLastSuccessfulSync(syncStartTime);
 
       logger.info(LOG_MESSAGES.SYNC_COMPLETED);
     } catch (error) {
@@ -74,11 +72,34 @@ export class UmamiService {
         return;
       }
 
+      // Filter sessions to only include those from configured websites
+      const configuredWebsiteIds = this.apiService.websiteIds;
+      console.log('Configured website IDs for filtering:', configuredWebsiteIds);
+      
+      const filteredSessions = sessions.filter(session =>
+        configuredWebsiteIds.includes(session.website_id)
+      );
+
+      const filteredOutCount = sessions.length - filteredSessions.length;
+
+      logger.info('Session filtering applied', {
+        totalSessions: sessions.length,
+        filteredSessions: filteredSessions.length,
+        filteredOutSessions: filteredOutCount,
+        configuredWebsites: configuredWebsiteIds,
+        uniqueWebsitesFound: [...new Set(sessions.map(s => s.website_id))]
+      });
+      
+      if (filteredSessions.length === 0) {
+        logger.info('No sessions found from configured websites');
+        return;
+      }
+
       // Update users sequentially - each session corresponds to one user
-      await this.updateUserSessionsSequential(sessions);
+      await this.updateUserSessionsSequential(filteredSessions);
 
       logger.info(LOG_MESSAGES.SESSION_SYNC_COMPLETED, {
-        sessionsProcessed: sessions.length
+        sessionsProcessed: filteredSessions.length
       });
     } catch (error) {
       logger.error('Session ID sync failed', { error });
@@ -406,10 +427,9 @@ export class UmamiService {
    * Determine sync window based on last successful sync
    */
   private async determineSyncWindow(): Promise<{
-    shouldSync: boolean;
     startDate: Date;
     endDate: Date;
-    syncType: 'initial' | 'recovery' | 'daily';
+    syncType: 'initial' | 'incremental';
   }> {
     const db = DatabaseService.getInstance().getConnection();
     if (!db) {
@@ -420,88 +440,42 @@ export class UmamiService {
     const config = await collection.findOne({ _id: 'global' as any });
     const lastSuccessfulSync = config?.umamiSync?.lastSuccessfulSync;
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-
-    // Set end date to end of today
-    const endDate = new Date(today);
-    endDate.setHours(23, 59, 59, 999);
 
     if (!lastSuccessfulSync) {
-      // Initial sync - sync last 7 days
-      const startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - 6); // 7 days total including today
-      startDate.setHours(0, 0, 0, 0);
+      // Initial sync - sync configurable days from environment
+      const initialSyncDays = parseInt(process.env['INITIAL-SYNC-DAYS'] || '7');
+      const startDate = new Date(Date.now() - initialSyncDays * 24 * 60 * 60 * 1000);
 
-      logger.info('Initial sync detected - syncing last 7 days', {
+      logger.info('Initial sync detected - syncing configured days', {
+        initialSyncDays,
         startDate: startDate.toISOString().split('T')[0],
-        endDate: todayStr
+        endDate: today.toISOString().split('T')[0]
       });
 
       return {
-        shouldSync: true,
         startDate,
-        endDate,
+        endDate: today,
         syncType: 'initial'
       };
     }
 
-    // Check if we already synced today
-    const lastSyncDate = new Date(lastSuccessfulSync).toISOString().split('T')[0];
-    if (lastSyncDate === todayStr) {
-      logger.info('Already synced today, skipping');
-      return {
-        shouldSync: false,
-        startDate: today,
-        endDate,
-        syncType: 'daily'
-      };
-    }
+    // Always sync from last sync time to today
+    logger.info('Syncing from last successful time to current time', {
+      lastSyncTime: lastSuccessfulSync,
+      currentTime: today.toISOString()
+    });
 
-    // Calculate days missed since last sync
-    const daysSinceLastSync = Math.floor((today.getTime() - new Date(lastSuccessfulSync).getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysSinceLastSync <= 1) {
-      // Daily sync - sync yesterday
-      const startDate = new Date(today);
-      startDate.setDate(startDate.getDate() - 1);
-      startDate.setHours(0, 0, 0, 0);
-
-      logger.info('Daily sync detected - syncing yesterday', {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: todayStr
-      });
-
-      return {
-        shouldSync: true,
-        startDate,
-        endDate,
-        syncType: 'daily'
-      };
-    } else {
-      // Recovery sync - sync missed days
-      const startDate = new Date(lastSuccessfulSync);
-      startDate.setDate(startDate.getDate() + 1); // Start from day after last successful sync
-      startDate.setHours(0, 0, 0, 0);
-
-      logger.info('Recovery sync detected - syncing missed days', {
-        daysMissed: daysSinceLastSync,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: todayStr
-      });
-
-      return {
-        shouldSync: true,
-        startDate,
-        endDate,
-        syncType: 'recovery'
-      };
-    }
+    return {
+      startDate: new Date(lastSuccessfulSync), // Exact time from last sync
+      endDate: today,                          // Current time
+      syncType: 'incremental'
+    };
   }
 
   /**
    * Update last successful sync timestamp
    */
-  private async updateLastSuccessfulSync(syncDate: Date): Promise<void> {
+  private async updateLastSuccessfulSync(syncStartTime: Date): Promise<void> {
     try {
       const db = DatabaseService.getInstance().getConnection();
       if (!db) {
@@ -509,10 +483,11 @@ export class UmamiService {
       }
 
       const collection = db.collection('systemconfigs');
+
       const updateData = {
-        'umamiSync.lastSuccessfulSync': syncDate,
-        'umamiSync.lastSessionSync': new Date(),
-        'umamiSync.lastAnalyticsSync': new Date(),
+        'umamiSync.lastSuccessfulSync': syncStartTime,
+        'umamiSync.lastSessionSync': syncStartTime,
+        'umamiSync.lastAnalyticsSync': syncStartTime,
       };
 
       await collection.updateOne(
@@ -528,7 +503,7 @@ export class UmamiService {
       );
 
       logger.info('Updated last successful sync timestamp', {
-        syncDate: syncDate.toISOString().split('T')[0]
+        syncStartTime: syncStartTime.toISOString()
       });
     } catch (error) {
       logger.error('Failed to update last successful sync timestamp', { error });

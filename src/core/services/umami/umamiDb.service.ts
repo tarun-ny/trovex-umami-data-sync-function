@@ -68,18 +68,19 @@ export class UmamiDbService {
   static async getSessionsCreatedAfter(startTime: Date): Promise<MySqlSession[]> {
     ensurePool();
     const query = `
-      SELECT session_id, created_at, distinct_id
+      SELECT session_id, created_at, distinct_id, website_id
       FROM session
       WHERE created_at >= ?
       ORDER BY created_at ASC
     `;
 
     try {
-      const [result] = await (pool as Pool).execute(query, [startTime]);
+      const [result] = await (pool as Pool).execute(query, [startTime]) as [any[], any];
       const sessionsData = (result as any[]).map((row: any) => ({
         session_id: row.session_id,
         created_at: row.created_at,
         distinct_id: row.distinct_id,
+        website_id: row.website_id
       }));
 
       const sessionIds = sessionsData.map((s: any) => s.session_id);
@@ -97,6 +98,7 @@ export class UmamiDbService {
         session_id: row.session_id,
         created_at: new Date(row.created_at),
         distinct_id: row.distinct_id,
+        website_id: row.website_id
       }));
     } catch (error) {
       const err: any = error;

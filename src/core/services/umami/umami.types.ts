@@ -60,6 +60,7 @@ export interface MySqlSession {
   session_id: string;
   created_at: Date;
   distinct_id: string;
+  website_id: string;
 }
 
 export interface SyncResult {
