@@ -52,10 +52,6 @@ async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise
     await databaseService.connect();
     context.log('✅ Database connected');
 
-    // Test connections
-    const connectionResults = await UmamiService.testConnections();
-    context.log('Connection test results:', connectionResults);
-
     // Get sync status
     const syncStatus = await UmamiService.getSyncStatus();
     context.log('Current sync status:', syncStatus);

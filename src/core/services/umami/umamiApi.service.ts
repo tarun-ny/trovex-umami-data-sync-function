@@ -195,32 +195,6 @@ export class UmamiApiService {
   }
 
   /**
-   * Get timestamp range for a specific day
-   * @param dateStr - Date string in YYYY-MM-DD format
-   * @returns Start and end timestamps in milliseconds
-   */
-  static getDayTimestamps(dateStr: string): { startTimestamp: number; endTimestamp: number } {
-    const date = new Date(dateStr);
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-
-    return {
-      startTimestamp: startOfDay.getTime(),
-      endTimestamp: endOfDay.getTime() - 1, // End of the day
-    };
-  }
-
-  /**
-   * Get yesterday's date string in YYYY-MM-DD format
-   * @returns Yesterday's date string
-   */
-  static getYesterdayDateString(): string {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  }
-
-  /**
    * Get configured website IDs from environment
    */
   private getWebsiteIds(): string[] {

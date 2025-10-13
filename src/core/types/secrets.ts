@@ -21,13 +21,4 @@ export enum KeyVaultSecretEnum {
   SessionSyncWindowHours = "SESSION-SYNC-WINDOW-HOURS",
   ApiPageSize = "API-PAGE-SIZE",
 
-  // Azure Key Vault Configuration
-  AzureKeyVaultUrl = "AZURE-KEY-VAULT-URL",
-  AzureTenantId = "AZURE-TENANT-ID",
-  AzureClientId = "AZURE-CLIENT-ID",
-  AzureClientSecret = "AZURE-CLIENT-SECRET",
-  AzureKeyVaultTag = "AZURE-KEY-VAULT-TAG",
-
-  // Logging
-  LogLevel = "LOG-LEVEL",
 }
