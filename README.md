@@ -48,8 +48,11 @@ npm install
 
 2. **Configure environment**:
 ```bash
-cp .env.example .env.local
-# Edit .env.local with your configuration
+# Copy the template file
+cp local.settings.template.json local.settings.json
+
+# Edit local.settings.json with your configuration
+# See Configuration section below for details
 ```
 
 3. **Local development**:
@@ -66,62 +69,98 @@ npm run dev
 
 ## Configuration
 
-### Environment Variables
+### Local Settings (`local.settings.json`)
 
-#### Required for Local Development
-```bash
-# Database
-MONGODB=mongodb://localhost:27017/trovex
+This project uses a **single configuration file** for both local and production environments.
 
-# Umami Database (MySQL/PostgreSQL depending on your setup)
-UMAMI-DB-HOST=localhost
-UMAMI-DB-PORT=5432
-UMAMI-DB-NAME=umami
-UMAMI-DB-USER=postgres
-UMAMI-DB-PASSWORD=password
-UMAMI-DB-SSL=false
+**Default Behavior**: Uses **Azure Key Vault** for secrets (production-safe)
 
-# Umami API
-UMAMI-API-BASE-URL=http://localhost:3000/api
-UMAMI-API-USERNAME=admin
-UMAMI-API-PASSWORD=password
-UMAMI-WEBSITE-IDS=website1,website2
+#### Mode 1: Azure Key Vault (Default - Production)
 
-# Sync Configuration
-INITIAL-SYNC-DAYS=7
-SESSION-SYNC-WINDOW-HOURS=24
-BATCH-SIZE=100
-API-PAGE-SIZE=100
+Provide only Azure credentials. Application secrets are fetched from Key Vault:
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    
+    "USE_LOCAL": "false",
+    
+    "AZURE_KEY_VAULT_URL": "https://your-vault.vault.azure.net/",
+    "AZURE_TENANT_ID": "your-tenant-id",
+    "AZURE_CLIENT_ID": "your-client-id",
+    "AZURE_CLIENT_SECRET": "your-client-secret",
+    "AZURE_KEY_VAULT_TAG": "production"
+  }
+}
 ```
 
-#### Azure Key Vault (Production)
-```bash
-KEYS_ENV=keyvault
-SECRET_PROVIDER=AZURE
-AZURE_KEY_VAULT_URL=https://your-vault.vault.azure.net/
-AZURE_TENANT_ID=your-tenant-id
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-AZURE_KEY_VAULT_TAG=production
+All application secrets (MONGODB-testing, UMAMI-DB-*, etc.) are automatically fetched from Azure Key Vault.
+
+#### Mode 2: Local Development (Opt-in)
+
+Set `USE_LOCAL=true` to use local secrets instead of Key Vault:
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    
+    "USE_LOCAL": "true",
+    
+    "MONGODB-testing": "mongodb://localhost:27017/trovex",
+    "UMAMI-DB-HOST": "localhost",
+    "UMAMI-DB-PORT": "3306",
+    "UMAMI-DB-NAME": "umami",
+    "UMAMI-DB-USER": "umami",
+    "UMAMI-DB-PASSWORD": "your-password",
+    "UMAMI-DB-SSL": "false",
+    "UMAMI-API-BASE-URL": "http://localhost:3000/api",
+    "UMAMI-API-USERNAME": "admin",
+    "UMAMI-API-PASSWORD": "password",
+    "UMAMI-WEBSITE-IDS": "website-id-1,website-id-2",
+    "INITIAL-SYNC-DAYS": "7",
+    "SESSION-SYNC-WINDOW-HOURS": "24",
+    "API-PAGE-SIZE": "100",
+    "LOG_LEVEL": "info"
+  }
+}
 ```
 
 ### Azure Key Vault Setup
 
 1. **Create secrets in Azure Key Vault**:
-   - `MONGODB` - MongoDB connection string
-   - `UMAMI-DB-HOST` - PostgreSQL host
-   - `UMAMI-DB-NAME` - PostgreSQL database name
-   - `UMAMI-DB-USER` - PostgreSQL username
-   - `UMAMI-DB-PASSWORD` - PostgreSQL password
+   - `MONGODB-testing` - MongoDB connection string
+   - `UMAMI-DB-HOST` - Umami MySQL/PostgreSQL host
+   - `UMAMI-DB-PORT` - Database port (e.g., 3306 for MySQL)
+   - `UMAMI-DB-NAME` - Umami database name
+   - `UMAMI-DB-USER` - Database username
+   - `UMAMI-DB-PASSWORD` - Database password
+   - `UMAMI-DB-SSL` - SSL enabled (true/false)
    - `UMAMI-API-BASE-URL` - Umami API URL
    - `UMAMI-API-USERNAME` - Umami API username
    - `UMAMI-API-PASSWORD` - Umami API password
    - `UMAMI-WEBSITE-IDS` - Comma-separated website IDs
+   - `INITIAL-SYNC-DAYS` - Days to sync on initial run
+   - `SESSION-SYNC-WINDOW-HOURS` - Hours window for session sync
+   - `API-PAGE-SIZE` - Page size for API requests
+   - `LOG-LEVEL` - Logging level (info, debug, error)
 
 2. **Configure Azure Function App Settings**:
-   - `KEYS_ENV=keyvault`
-   - `SECRET_PROVIDER=AZURE`
-   - Azure Key Vault configuration variables
+   ```json
+   {
+     "USE_KEY_VAULT": "true",
+     "AZURE_KEY_VAULT_URL": "https://your-vault.vault.azure.net/",
+     "AZURE_TENANT_ID": "your-tenant-id",
+     "AZURE_CLIENT_ID": "your-client-id",
+     "AZURE_CLIENT_SECRET": "your-client-secret",
+     "AZURE_KEY_VAULT_TAG": "production"
+   }
+   ```
 
 ## Testing
 
@@ -174,14 +213,17 @@ curl http://localhost:7071/api/UmamiSync
 2. **Configure Application Settings**:
    ```json
    {
-     "KEYS_ENV": "keyvault",
-     "SECRET_PROVIDER": "AZURE",
-     "AZURE_KEY_VAULT_URL": "@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/AZURE-KEY-VAULT-URL/)",
-     "AZURE_TENANT_ID": "@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/AZURE-TENANT-ID/)",
-     "AZURE_CLIENT_ID": "@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/AZURE-CLIENT-ID/)",
-     "AZURE_CLIENT_SECRET": "@Microsoft.KeyVault(SecretUri=https://your-vault.vault.azure.net/secrets/AZURE-CLIENT-SECRET/)"
+     "AZURE_KEY_VAULT_URL": "https://your-vault.vault.azure.net/",
+     "AZURE_TENANT_ID": "your-tenant-id",
+     "AZURE_CLIENT_ID": "your-client-id",
+     "AZURE_CLIENT_SECRET": "your-client-secret",
+     "AZURE_KEY_VAULT_TAG": "production"
    }
    ```
+   
+   **Note**: 
+   - Key Vault is used **by default** (no need to set `USE_LOCAL=false`)
+   - All application secrets (MONGODB-testing, UMAMI-DB-*, etc.) will be automatically loaded from Azure Key Vault
 
 3. **Deploy Function**:
    ```bash

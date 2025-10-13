@@ -5,11 +5,8 @@ import path from "path";
 import logger from "../../utils/logger";
 import { KeyVaultSecretEnum } from "../../types/secrets";
 import { ALL_SECRETS } from "./secreteCategories";
-import dotenv from "dotenv";
 
-
-dotenv.config();
-
+// Azure credentials should be loaded by env.ts before this module is used
 const keyVaultConfig = {
   vaultUrl: process.env.AZURE_KEY_VAULT_URL!,
   tenantId: process.env.AZURE_TENANT_ID!,
