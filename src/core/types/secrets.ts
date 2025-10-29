@@ -4,7 +4,7 @@
  */
 export enum KeyVaultSecretEnum {
   // Database
-  MongoConnectionString = "MONGODB-testing",
+  MongoConnectionString = "MONGODB",
 
   // Umami Configuration
   UmamiDbHost = "UMAMI-DB-HOST",

@@ -14,7 +14,7 @@ describe('DatabaseService - Simple Unit Tests', () => {
     originalEnv = { ...process.env };
 
     // Set up test environment
-    process.env['MONGODB-testing'] = 'mongodb://localhost:27017/test_db';
+    process.env['MONGODB'] = 'mongodb://localhost:27017/test_db';
 
     // Reset mocks
     vi.clearAllMocks();
@@ -49,22 +49,22 @@ describe('DatabaseService - Simple Unit Tests', () => {
   });
 
   describe('connect', () => {
-    it('should throw error if MONGODB-testing_URL is not found', async () => {
-      delete process.env['MONGODB-testing'];
+    it('should throw error if MONGODB_URL is not found', async () => {
+      delete process.env['MONGODB'];
 
       const service = DatabaseService.getInstance();
 
       await expect(service.connect())
-        .rejects.toThrow('MONGODB-testing connection string not found in environment variables');
+        .rejects.toThrow('MONGODB connection string not found in environment variables');
     });
 
-    it('should throw error if MONGODB-testing_URL is empty string', async () => {
-      process.env['MONGODB-testing'] = '';
+    it('should throw error if MONGODB_URL is empty string', async () => {
+      process.env['MONGODB'] = '';
 
       const service = DatabaseService.getInstance();
 
       await expect(service.connect())
-        .rejects.toThrow('MONGODB-testing connection string not found in environment variables');
+        .rejects.toThrow('MONGODB connection string not found in environment variables');
     });
   });
 

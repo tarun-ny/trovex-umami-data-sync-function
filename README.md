@@ -97,7 +97,7 @@ Provide only Azure credentials. Application secrets are fetched from Key Vault:
 }
 ```
 
-All application secrets (MONGODB-testing, UMAMI-DB-*, etc.) are automatically fetched from Azure Key Vault.
+All application secrets (MONGODB, UMAMI-DB-*, etc.) are automatically fetched from Azure Key Vault.
 
 #### Mode 2: Local Development (Opt-in)
 
@@ -112,7 +112,7 @@ Set `USE_LOCAL=true` to use local secrets instead of Key Vault:
     
     "USE_LOCAL": "true",
     
-    "MONGODB-testing": "mongodb://localhost:27017/trovex",
+    "MONGODB": "mongodb://localhost:27017/trovex",
     "UMAMI-DB-HOST": "localhost",
     "UMAMI-DB-PORT": "3306",
     "UMAMI-DB-NAME": "umami",
@@ -134,7 +134,7 @@ Set `USE_LOCAL=true` to use local secrets instead of Key Vault:
 ### Azure Key Vault Setup
 
 1. **Create secrets in Azure Key Vault**:
-   - `MONGODB-testing` - MongoDB connection string
+   - `MONGODB` - MongoDB connection string
    - `UMAMI-DB-HOST` - Umami MySQL/PostgreSQL host
    - `UMAMI-DB-PORT` - Database port (e.g., 3306 for MySQL)
    - `UMAMI-DB-NAME` - Umami database name
@@ -223,7 +223,7 @@ curl http://localhost:7071/api/UmamiSync
    
    **Note**: 
    - Key Vault is used **by default** (no need to set `USE_LOCAL=false`)
-   - All application secrets (MONGODB-testing, UMAMI-DB-*, etc.) will be automatically loaded from Azure Key Vault
+   - All application secrets (MONGODB, UMAMI-DB-*, etc.) will be automatically loaded from Azure Key Vault
 
 3. **Deploy Function**:
    ```bash
