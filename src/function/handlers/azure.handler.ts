@@ -5,52 +5,7 @@ import { initializeLogger } from '../../core/utils/logger';
 import { DatabaseService } from '../../core/models/database.service';
 import { Logger } from '../../core/utils/logger';
 import https from 'https';
-import dns from 'dns';
-import net from 'net';
 
-/**
- * Network diagnostic test for MongoDB connectivity
- */
-async function testMongoDBConnectivity(context: InvocationContext): Promise<void> {
-  context.log('🔍 Testing MongoDB connectivity...');
-
-  const mongoHost = 'trovexcluster-pl-1-shard-00-00.privatelink.mongodb.net';
-  const mongoPort = 27017;
-
-  return new Promise((resolve) => {
-    // Test DNS resolution
-    dns.lookup(mongoHost, (err, address) => {
-      if (err) {
-        context.log('❌ DNS resolution error:', err.message);
-        resolve();
-        return;
-      }
-
-      context.log(`✅ DNS resolved: ${mongoHost} -> ${address}`);
-
-      // Test TCP connectivity
-      const socket = new net.Socket();
-      socket.setTimeout(5000);
-
-      socket.connect(mongoPort, address, () => {
-        context.log(`✅ Successfully connected to ${address}:${mongoPort}`);
-        socket.end();
-        resolve();
-      });
-
-      socket.on('error', (e) => {
-        context.log(`❌ Connection error to ${address}:${mongoPort}:`, e.message);
-        resolve();
-      });
-
-      socket.on('timeout', () => {
-        context.log(`⏳ Connection timeout to ${address}:${mongoPort}`);
-        socket.destroy();
-        resolve();
-      });
-    });
-  });
-}
 
 async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise<void> {
   context.log('🚀 Umami sync function started');
@@ -76,12 +31,6 @@ async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise
     context.log('⚠️  Failed to get outbound IP:', error);
   }
 
-  // Run network diagnostic test
-  try {
-    await testMongoDBConnectivity(context);
-  } catch (error) {
-    context.log('⚠️  Network diagnostic test failed:', error);
-  }
 
   // Validate timer trigger
   if (myTimer.isPastDue) {
