@@ -19,6 +19,8 @@ export class DatabaseService {
 
     const mongoUrl = process.env['MONGODB-testing'];
 
+    console.log('🔍 Connecting to MongoDB:', mongoUrl);
+
     if (!mongoUrl) {
       throw new Error('MONGODB-testing connection string not found in environment variables');
     }
