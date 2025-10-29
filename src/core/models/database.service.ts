@@ -17,7 +17,7 @@ export class DatabaseService {
       return;
     }
 
-    const mongoUrl = process.env['MONGODB-testing'];
+    const mongoUrl = process.env['MONGODB-testing']?.trim();
 
     console.log('🔍 Connecting to MongoDB:', mongoUrl);
 
