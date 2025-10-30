@@ -102,6 +102,6 @@ async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise
 
 // Register the timer trigger with Azure Functions v4 programming model
 app.timer('UmamiSync', {
-  schedule: '0 */2 * * * *',
+  schedule: '0 0 0 * * *',
   handler: timerTrigger
 });
