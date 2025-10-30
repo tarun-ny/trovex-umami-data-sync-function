@@ -1,10 +1,10 @@
 import pino from 'pino';
 
 export interface Logger {
-  info: (msg: string, ...args: any[]) => void;
-  error: (msg: string, ...args: any[]) => void;
-  warn: (msg: string, ...args: any[]) => void;
-  debug: (msg: string, ...args: any[]) => void;
+  info: (msg: string, metadata?: any) => void;
+  error: (msg: string, metadata?: any) => void;
+  warn: (msg: string, metadata?: any) => void;
+  debug: (msg: string, metadata?: any) => void;
 }
 
 export function initializeLogger(platform: 'azure' | 'aws' | 'console' = 'console'): Logger {
@@ -14,11 +14,22 @@ export function initializeLogger(platform: 'azure' | 'aws' | 'console' = 'consol
     timestamp: pino.stdTimeFunctions.isoTime,
   });
 
+  // Helper function to properly format logs for Pino
+  const formatLog = (level: 'info' | 'error' | 'warn' | 'debug', msg: string, metadata?: any) => {
+    if (metadata && typeof metadata === 'object') {
+      // Pino expects: logger.level(obj, msg)
+      baseLogger[level](metadata, msg);
+    } else {
+      // Just message, no metadata
+      baseLogger[level](msg);
+    }
+  };
+
   return {
-    info: (msg: string, ...args: any[]) => baseLogger.info(msg, ...args),
-    error: (msg: string, ...args: any[]) => baseLogger.error(msg, ...args),
-    warn: (msg: string, ...args: any[]) => baseLogger.warn(msg, ...args),
-    debug: (msg: string, ...args: any[]) => baseLogger.debug(msg, ...args),
+    info: (msg: string, metadata?: any) => formatLog('info', msg, metadata),
+    error: (msg: string, metadata?: any) => formatLog('error', msg, metadata),
+    warn: (msg: string, metadata?: any) => formatLog('warn', msg, metadata),
+    debug: (msg: string, metadata?: any) => formatLog('debug', msg, metadata),
   };
 }
 
