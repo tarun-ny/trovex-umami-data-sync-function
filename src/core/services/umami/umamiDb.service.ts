@@ -21,12 +21,12 @@ function ensurePool(): void {
     return;
   }
 
-  const host = getTrimmedEnv('UMAMI-DB-HOST');
-  const portStr = getTrimmedEnv('UMAMI-DB-PORT') || '3306';
-  const database = getTrimmedEnv('UMAMI-DB-NAME');
-  const user = getTrimmedEnv('UMAMI-DB-USER');
-  const password = getTrimmedEnv('UMAMI-DB-PASSWORD');
-  const sslEnabled = getTrimmedEnv('UMAMI-DB-SSL') === 'true';
+  const host = getTrimmedEnv('UMAMI_DB_HOST');
+  const portStr = getTrimmedEnv('UMAMI_DB_PORT') || '3306';
+  const database = getTrimmedEnv('UMAMI_DB_NAME');
+  const user = getTrimmedEnv('UMAMI_DB_USER');
+  const password = getTrimmedEnv('UMAMI_DB_PASSWORD');
+  const sslEnabled = getTrimmedEnv('UMAMI_DB_SSL') === 'true';
 
   pool = createPool({
     host,

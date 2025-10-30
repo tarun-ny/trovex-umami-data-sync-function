@@ -97,7 +97,7 @@ Provide only Azure credentials. Application secrets are fetched from Key Vault:
 }
 ```
 
-All application secrets (MONGODB, UMAMI-DB-*, etc.) are automatically fetched from Azure Key Vault.
+All application secrets (MONGODB, UMAMI_DB_*, etc.) are automatically fetched from Azure Key Vault.
 
 #### Mode 2: Local Development (Opt-in)
 
@@ -113,19 +113,19 @@ Set `USE_LOCAL=true` to use local secrets instead of Key Vault:
     "USE_LOCAL": "true",
     
     "MONGODB": "mongodb://localhost:27017/trovex",
-    "UMAMI-DB-HOST": "localhost",
-    "UMAMI-DB-PORT": "3306",
-    "UMAMI-DB-NAME": "umami",
-    "UMAMI-DB-USER": "umami",
-    "UMAMI-DB-PASSWORD": "your-password",
-    "UMAMI-DB-SSL": "false",
-    "UMAMI-API-BASE-URL": "http://localhost:3000/api",
-    "UMAMI-API-USERNAME": "admin",
-    "UMAMI-API-PASSWORD": "password",
-    "UMAMI-WEBSITE-IDS": "website-id-1,website-id-2",
-    "INITIAL-SYNC-DAYS": "7",
-    "SESSION-SYNC-WINDOW-HOURS": "24",
-    "API-PAGE-SIZE": "100",
+    "UMAMI_DB_HOST": "localhost",
+    "UMAMI_DB_PORT": "3306",
+    "UMAMI_DB_NAME": "umami",
+    "UMAMI_DB_USER": "umami",
+    "UMAMI_DB_PASSWORD": "your-password",
+    "UMAMI_DB_SSL": "false",
+    "UMAMI_API_BASE_URL": "http://localhost:3000/api",
+    "UMAMI_API_USERNAME": "admin",
+    "UMAMI_API_PASSWORD": "password",
+    "UMAMI_WEBSITE_IDS": "website-id-1,website-id-2",
+    "INITIAL_SYNC_DAYS": "7",
+    "SESSION_SYNC_WINDOW_HOURS": "24",
+    "API_PAGE_SIZE": "100",
     "LOG_LEVEL": "info"
   }
 }
@@ -135,20 +135,20 @@ Set `USE_LOCAL=true` to use local secrets instead of Key Vault:
 
 1. **Create secrets in Azure Key Vault**:
    - `MONGODB` - MongoDB connection string
-   - `UMAMI-DB-HOST` - Umami MySQL/PostgreSQL host
-   - `UMAMI-DB-PORT` - Database port (e.g., 3306 for MySQL)
-   - `UMAMI-DB-NAME` - Umami database name
-   - `UMAMI-DB-USER` - Database username
-   - `UMAMI-DB-PASSWORD` - Database password
-   - `UMAMI-DB-SSL` - SSL enabled (true/false)
-   - `UMAMI-API-BASE-URL` - Umami API URL
-   - `UMAMI-API-USERNAME` - Umami API username
-   - `UMAMI-API-PASSWORD` - Umami API password
-   - `UMAMI-WEBSITE-IDS` - Comma-separated website IDs
-   - `INITIAL-SYNC-DAYS` - Days to sync on initial run
-   - `SESSION-SYNC-WINDOW-HOURS` - Hours window for session sync
-   - `API-PAGE-SIZE` - Page size for API requests
-   - `LOG-LEVEL` - Logging level (info, debug, error)
+   - `UMAMI_DB_HOST` - Umami MySQL/PostgreSQL host
+   - `UMAMI_DB_PORT` - Database port (e.g., 3306 for MySQL)
+   - `UMAMI_DB_NAME` - Umami database name
+   - `UMAMI_DB_USER` - Database username
+   - `UMAMI_DB_PASSWORD` - Database password
+   - `UMAMI_DB_SSL` - SSL enabled (true/false)
+   - `UMAMI_API_BASE_URL` - Umami API URL
+   - `UMAMI_API_USERNAME` - Umami API username
+   - `UMAMI_API_PASSWORD` - Umami API password
+   - `UMAMI_WEBSITE_IDS` - Comma-separated website IDs
+   - `INITIAL_SYNC_DAYS` - Days to sync on initial run
+   - `SESSION_SYNC_WINDOW_HOURS` - Hours window for session sync
+   - `API_PAGE_SIZE` - Page size for API requests
+   - `LOG_LEVEL` - Logging level (info, debug, error)
 
 2. **Configure Azure Function App Settings**:
    ```json
@@ -223,7 +223,7 @@ curl http://localhost:7071/api/UmamiSync
    
    **Note**: 
    - Key Vault is used **by default** (no need to set `USE_LOCAL=false`)
-   - All application secrets (MONGODB, UMAMI-DB-*, etc.) will be automatically loaded from Azure Key Vault
+   - All application secrets (MONGODB, UMAMI_DB_*, etc.) will be automatically loaded from Azure Key Vault
 
 3. **Deploy Function**:
    ```bash

@@ -400,7 +400,7 @@ export class UmamiService {
    * Get configured website IDs from environment
    */
   public getWebsiteIds(): string[] {
-    const websiteIdsStr = process.env['UMAMI-WEBSITE-IDS'] || '';
+    const websiteIdsStr = process.env['UMAMI_WEBSITE_IDS'] || '';
     return websiteIdsStr.split(',').map(id => id.trim()).filter(Boolean);
   }
 
@@ -443,7 +443,7 @@ export class UmamiService {
 
     if (!lastSuccessfulSync) {
       // Initial sync - sync configurable days from environment
-      const initialSyncDays = parseInt(process.env['INITIAL-SYNC-DAYS'] || '7');
+      const initialSyncDays = parseInt(process.env['INITIAL_SYNC_DAYS'] || '7');
       const startDate = new Date(Date.now() - initialSyncDays * 24 * 60 * 60 * 1000);
 
       logger.info('Initial sync detected - syncing configured days', {

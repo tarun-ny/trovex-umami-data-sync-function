@@ -22,9 +22,9 @@ export class UmamiApiService {
   public websiteIds: string[];
 
   constructor() {
-    this.baseUrl = process.env['UMAMI-API-BASE-URL'] || '';
-    this.username = process.env['UMAMI-API-USERNAME'] || '';
-    this.password = process.env['UMAMI-API-PASSWORD'] || '';
+    this.baseUrl = process.env['UMAMI_API_BASE_URL'] || '';
+    this.username = process.env['UMAMI_API_USERNAME'] || '';
+    this.password = process.env['UMAMI_API_PASSWORD'] || '';
     this.websiteIds = this.getWebsiteIds();
 
     if (!this.baseUrl || !this.username || !this.password) {
@@ -198,7 +198,7 @@ export class UmamiApiService {
    * Get configured website IDs from environment
    */
   private getWebsiteIds(): string[] {
-    const websiteIdsStr = process.env['UMAMI-WEBSITE-IDS'] || '';
+    const websiteIdsStr = process.env['UMAMI_WEBSITE_IDS'] || '';
     return websiteIdsStr.split(',').map(id => id.trim()).filter(Boolean);
   }
 }
