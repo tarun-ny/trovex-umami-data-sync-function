@@ -12,16 +12,30 @@ export function initializeLogger(platform: 'azure' | 'aws' | 'console' = 'consol
     level: process.env.LOG_LEVEL || 'info',
     base: { platform },
     timestamp: pino.stdTimeFunctions.isoTime,
+    serializers: {
+      error: pino.stdSerializers.err, // Use Pino's built-in error serializer
+    }
   });
 
   // Helper function to properly format logs for Pino
   const formatLog = (level: 'info' | 'error' | 'warn' | 'debug', msg: string, metadata?: any) => {
-    if (metadata && typeof metadata === 'object') {
-      // Pino expects: logger.level(obj, msg)
+    if (!metadata) {
+      // No metadata, just message
+      baseLogger[level](msg);
+      return;
+    }
+
+    // Handle different metadata types
+    if (metadata instanceof Error) {
+      // Error objects - wrap in 'error' key for Pino's serializer
+      baseLogger[level]({ error: metadata }, msg);
+    } else if (typeof metadata === 'object' && metadata !== null) {
+      // Regular object - pass to Pino in correct order
       baseLogger[level](metadata, msg);
     } else {
-      // Just message, no metadata
-      baseLogger[level](msg);
+      // Primitive value (string, number, boolean, undefined, null)
+      // Wrap it in an object so Pino can log it properly
+      baseLogger[level]({ value: metadata }, msg);
     }
   };
 

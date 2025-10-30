@@ -33,6 +33,9 @@ describe('Logger - Simple Unit Tests', () => {
         level: 'info',
         base: { platform: 'console' },
         timestamp: pino.stdTimeFunctions.isoTime,
+        serializers: {
+          error: pino.stdSerializers.err,
+        }
       });
 
       expect(logger).toHaveProperty('info');
@@ -48,6 +51,9 @@ describe('Logger - Simple Unit Tests', () => {
         level: 'info',
         base: { platform: 'azure' },
         timestamp: pino.stdTimeFunctions.isoTime,
+        serializers: {
+          error: pino.stdSerializers.err,
+        }
       });
     });
 
@@ -60,6 +66,9 @@ describe('Logger - Simple Unit Tests', () => {
         level: 'debug',
         base: { platform: 'console' },
         timestamp: pino.stdTimeFunctions.isoTime,
+        serializers: {
+          error: pino.stdSerializers.err,
+        }
       });
 
       // Clean up
@@ -74,10 +83,11 @@ describe('Logger - Simple Unit Tests', () => {
       logger = initializeLogger();
     });
 
-    it('should call baseLogger.info with correct arguments', () => {
+    it('should call baseLogger.info with correct Pino format (metadata first, message second)', () => {
       logger.info('Test message', { key: 'value' });
 
-      expect(mockBaseLogger.info).toHaveBeenCalledWith('Test message', { key: 'value' });
+      // Pino expects: baseLogger.info(metadata, message)
+      expect(mockBaseLogger.info).toHaveBeenCalledWith({ key: 'value' }, 'Test message');
     });
 
     it('should handle single string argument', () => {
@@ -86,23 +96,33 @@ describe('Logger - Simple Unit Tests', () => {
       expect(mockBaseLogger.info).toHaveBeenCalledWith('Simple message');
     });
 
-    it('should call baseLogger.error with correct arguments', () => {
+    it('should wrap Error objects in error key for Pino serializer', () => {
       const error = new Error('Test error');
       logger.error('Error message', error);
 
-      expect(mockBaseLogger.error).toHaveBeenCalledWith('Error message', error);
+      // Error should be wrapped in { error: ... } for Pino's serializer
+      expect(mockBaseLogger.error).toHaveBeenCalledWith({ error }, 'Error message');
     });
 
-    it('should call baseLogger.warn with correct arguments', () => {
+    it('should call baseLogger.warn with correct Pino format', () => {
       logger.warn('Warning message', { deprecated: true });
 
-      expect(mockBaseLogger.warn).toHaveBeenCalledWith('Warning message', { deprecated: true });
+      // Pino expects: baseLogger.warn(metadata, message)
+      expect(mockBaseLogger.warn).toHaveBeenCalledWith({ deprecated: true }, 'Warning message');
     });
 
-    it('should call baseLogger.debug with correct arguments', () => {
+    it('should call baseLogger.debug with correct Pino format', () => {
       logger.debug('Debug message', { step: 1 });
 
-      expect(mockBaseLogger.debug).toHaveBeenCalledWith('Debug message', { step: 1 });
+      // Pino expects: baseLogger.debug(metadata, message)
+      expect(mockBaseLogger.debug).toHaveBeenCalledWith({ step: 1 }, 'Debug message');
+    });
+
+    it('should wrap primitive values in an object', () => {
+      logger.info('Test with number', 42);
+
+      // Primitive values should be wrapped in { value: ... }
+      expect(mockBaseLogger.info).toHaveBeenCalledWith({ value: 42 }, 'Test with number');
     });
   });
 });
