@@ -459,15 +459,20 @@ export class UmamiService {
       };
     }
 
-    // Always sync from last sync time to today
-    logger.info('Syncing from last successful time to current time', {
+    // Always sync from last sync time (minus buffer) to today
+    const bufferHours = DEFAULT_CONFIG.SYNC_BUFFER_HOURS;
+    const startDate = new Date(new Date(lastSuccessfulSync).getTime() - bufferHours * 60 * 60 * 1000);
+    
+    logger.info('Syncing from last successful time (with buffer) to current time', {
       lastSyncTime: lastSuccessfulSync,
-      currentTime: today.toISOString()
+      startDateWithBuffer: startDate.toISOString(),
+      currentTime: today.toISOString(),
+      bufferHours
     });
 
     return {
-      startDate: new Date(lastSuccessfulSync), // Exact time from last sync
-      endDate: today,                          // Current time
+      startDate, // Last sync time minus buffer
+      endDate: today,                          
       syncType: 'incremental'
     };
   }
