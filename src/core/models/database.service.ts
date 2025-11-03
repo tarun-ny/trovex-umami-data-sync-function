@@ -36,14 +36,14 @@ export class DatabaseService {
 
       this.connectionEstablished = true;
 
-      // Ensure indexes are created for all models
-      try {
-        await User.createIndexes();
-        console.log('✅ Connected to MongoDB and indexes created');
-      } catch (indexError) {
-        console.warn('⚠️  Index creation warning:', indexError);
-        console.log('✅ Connected to MongoDB (index creation skipped)');
-      }
+      // // Ensure indexes are created for all models
+      // try {
+      //   await User.createIndexes();
+      //   console.log('✅ Connected to MongoDB and indexes created');
+      // } catch (indexError) {
+      //   console.warn('⚠️  Index creation warning:', indexError);
+      //   console.log('✅ Connected to MongoDB (index creation skipped)');
+      // }
     } catch (error) {
       console.error('❌ MongoDB connection failed:', error);
       throw error;
