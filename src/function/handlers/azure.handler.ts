@@ -55,14 +55,14 @@ async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise
     context.log('✅ Database connected');
 
     // Get sync status
-    const syncStatus = await UmamiService.getSyncStatus();
-    context.log('Current sync status:', syncStatus);
+    // const syncStatus = await UmamiService.getSyncStatus();
+    // context.log('Current sync status:', syncStatus);
 
     // Create and run Umami service
-    const umamiService = new UmamiService();
-    await umamiService.syncAllData();
+    // const umamiService = new UmamiService();
+    // await umamiService.syncAllData();
 
-    context.log('✅ Umami sync function completed successfully');
+    // context.log('✅ Umami sync function completed successfully');
 
   } catch (error) {
     context.log('❌ Umami sync function failed:', error);
@@ -102,6 +102,6 @@ async function timerTrigger(myTimer: Timer, context: InvocationContext): Promise
 
 // Register the timer trigger with Azure Functions v4 programming model
 app.timer('UmamiSync', {
-  schedule: '0 0 0 * * *',
+  schedule: '0 */2 * * * *',
   handler: timerTrigger
 });
